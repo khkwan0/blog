@@ -1,0 +1,113 @@
+// blog.kkith.com/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id            String      @id @default(cuid())
+  username      String?     @unique
+  name          String?
+  email         String      @unique
+  emailVerified Boolean     @default(false)
+  image         String?
+  role          Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @default(now()) @updatedAt
+  blogEntries   BlogEntry[]
+  sessions      Session[]
+  accounts      Account[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @default(now()) @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+
+  @@index([identifier])
+}
+
+enum BlogEntryFormat {
+  TEXT
+  VIDEO
+  AUDIO
+  HTML
+  MARKDOWN
+}
+
+enum BlogEntryStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model BlogEntry {
+  id          String           @id @default(cuid())
+  title       String
+  slug        String           @unique
+  excerpt     String?
+  status      BlogEntryStatus  @default(DRAFT)
+  publishedAt DateTime?
+  ownerId     String
+  owner       User             @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  blocks      BlogEntryBlock[]
+  createdAt   DateTime         @default(now())
+  modifiedAt  DateTime         @default(now()) @updatedAt
+
+  @@index([ownerId, createdAt])
+  @@index([status, publishedAt])
+}
+
+model BlogEntryBlock {
+  id          String          @id @default(cuid())
+  blogEntryId String
+  blogEntry   BlogEntry       @relation(fields: [blogEntryId], references: [id], onDelete: Cascade)
+  format      BlogEntryFormat
+  content     String
+  sortOrder   Int
+
+  @@unique([blogEntryId, sortOrder])
+  @@index([blogEntryId])
+}
+

@@ -1,0 +1,7 @@
+next/node_modules
+next/.next
+next/.env.development
+next/.env.production
+.git
+**/*.md
+agent-tools

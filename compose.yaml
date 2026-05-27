@@ -1,0 +1,84 @@
+services:
+  # Development Mode
+  dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      dockerfile: next/Dockerfile
+      target: dev     # Fast development layer
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./next:/app
+      - /app/node_modules
+      - ./prisma:/app/prisma
+      - sqlite-data:/data
+    env_file:
+      - ./next/.env.development
+    environment:
+      - APP_ENV=development
+      - RUN_PRISMA_BOOTSTRAP=1
+      - BETTER_AUTH_URL=http://localhost:3000
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-dev-change-me}
+    entrypoint: ./entrypoint.sh
+    command: bun run dev
+
+  # Production Mode
+  prod:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: next/Dockerfile
+      target: runner      # Tiny production runtime layer
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./prisma:/app/prisma
+      - sqlite-data:/data
+    env_file:
+      - ./next/.env.production
+    environment:
+      - APP_ENV=production
+      - RUN_PRISMA_BOOTSTRAP=1
+      - BETTER_AUTH_URL=https://blog.kkith.com
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-prod-change-me}
+    # Command is handled by Dockerfile (bun server.js)
+
+  # Prisma Studio for development DB
+  studio-dev:
+    build:
+      context: .
+      dockerfile: next/Dockerfile
+      target: dev
+    ports:
+      - "127.0.0.1:5555:5555"
+    volumes:
+      - ./next:/app
+      - /app/node_modules
+      - ./prisma:/app/prisma
+      - sqlite-data:/data
+    environment:
+      - DATABASE_URL=file:/data/dev.db
+    command: >
+      sh -c "bunx prisma studio --config=/app/prisma.config.js --url=file:/data/dev.db --port 5555 --browser none"
+
+  # Prisma Studio for production DB
+  studio-prod:
+    build:
+      context: .
+      dockerfile: next/Dockerfile
+      target: dev
+    ports:
+      - "127.0.0.1:5556:5556"
+    volumes:
+      - ./next:/app
+      - /app/node_modules
+      - ./prisma:/app/prisma
+      - sqlite-data:/data
+    environment:
+      - DATABASE_URL=file:/data/prod.db
+    command: >
+      sh -c "bunx prisma studio --config=/app/prisma.config.js --url=file:/data/prod.db --port 5556 --browser none"
+
+volumes:
+  sqlite-data:
