@@ -40,8 +40,6 @@ services:
     environment:
       - APP_ENV=production
       - RUN_PRISMA_BOOTSTRAP=1
-      - BETTER_AUTH_URL=https://blog.kkith.com
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-prod-change-me}
     # Command is handled by Dockerfile (bun server.js)
 
   # Prisma Studio for development DB
