@@ -59,11 +59,10 @@ export function PostEditor() {
     }
 
     const content = editor.getHTML();
-    const isEmpty =
-      !title.trim() || !editor.getText().trim() || content === "<p></p>";
+    const isEmpty = !editor.getText().trim() || content === "<p></p>";
 
     if (isEmpty) {
-      setError("Add a title and some content before publishing.");
+      setError("Add some content before publishing.");
       return;
     }
 
@@ -74,7 +73,7 @@ export function PostEditor() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title: title.trim(),
+        title: title.trim() || undefined,
         content,
         status: "PUBLISHED",
       }),
@@ -104,7 +103,9 @@ export function PostEditor() {
 
       <form onSubmit={onSubmit} className="mt-6 space-y-4">
         <label className="block">
-          <span className="mb-1 block text-sm font-medium">Title</span>
+          <span className="mb-1 block text-sm font-medium">
+            Title <span className="text-muted">(optional)</span>
+          </span>
           <input
             type="text"
             value={title}

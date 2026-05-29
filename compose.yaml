@@ -28,11 +28,14 @@ services:
       - /app/node_modules
       - /app/.next
       - ./prisma:/app/prisma
+      - ./storage/media:/data/media
     env_file:
       - ./next/.env.development
     environment:
       - APP_ENV=development
       - RUN_PRISMA_BOOTSTRAP=1
+      - MEDIA_STORAGE_PATH=/data/media
+      - ENABLE_VIDEO_DOWNLOAD=true
     depends_on:
       postgres:
         condition: service_healthy
@@ -50,12 +53,15 @@ services:
       - "3000:3000"
     volumes:
       - ./prisma:/app/prisma
+      - ./storage/media:/data/media
     env_file:
       - ./next/.env.production
     environment:
       - APP_ENV=production
       - RUN_PRISMA_BOOTSTRAP=1
       - BETTER_AUTH_URL=https://blog.kkith.com
+      - MEDIA_STORAGE_PATH=/data/media
+      - ENABLE_VIDEO_DOWNLOAD=true
     depends_on:
       postgres:
         condition: service_healthy

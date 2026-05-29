@@ -85,7 +85,7 @@ enum BlogEntryStatus {
 
 model BlogEntry {
   id          String           @id @default(cuid())
-  title       String
+  title       String?
   slug        String           @unique
   excerpt     String?
   status      BlogEntryStatus  @default(DRAFT)

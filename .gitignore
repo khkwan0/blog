@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# downloaded post media
+/storage/media/*
+!/storage/media/.gitkeep

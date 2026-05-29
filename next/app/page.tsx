@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { PostBlocks } from "@/components/post-blocks";
 import { HeaderNav } from "@/components/header-nav";
 import { PostEditor } from "@/components/post-editor";
 import { auth } from "@/lib/auth";
@@ -8,11 +9,17 @@ export const dynamic = "force-dynamic";
 
 type HomePost = {
   id: string;
-  title: string;
+  title: string | null;
   slug: string;
   excerpt: string | null;
   createdAt: Date;
   owner: { name: string };
+  blocks: {
+    id: string;
+    format: "HTML" | "VIDEO" | "TEXT" | "AUDIO" | "MARKDOWN";
+    content: string;
+    sortOrder: number;
+  }[];
 };
 
 function formatDate(date: Date) {
@@ -38,6 +45,15 @@ export default async function Home() {
       owner: {
         select: {
           name: true,
+        },
+      },
+      blocks: {
+        orderBy: { sortOrder: "asc" },
+        select: {
+          id: true,
+          format: true,
+          content: true,
+          sortOrder: true,
         },
       },
     },
@@ -70,7 +86,9 @@ export default async function Home() {
                 className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900"
               >
                 <article>
-                  <h3 className="text-lg font-semibold">{post.title}</h3>
+                  {post.title ? (
+                    <h3 className="text-lg font-semibold">{post.title}</h3>
+                  ) : null}
                   <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
                     {formatDate(post.createdAt)}
                     {` · ${post.owner.name}`}
@@ -80,6 +98,9 @@ export default async function Home() {
                       {post.excerpt}
                     </p>
                   ) : null}
+                  <PostBlocks
+                    blocks={post.blocks.filter((block) => block.format === "VIDEO")}
+                  />
                 </article>
               </li>
             ))}

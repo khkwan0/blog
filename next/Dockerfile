@@ -1,6 +1,8 @@
 # --- STAGE 1: Base & Dependencies ---
 FROM oven/bun:alpine AS base
 WORKDIR /app
+RUN apk add --no-cache ffmpeg python3 py3-pip nodejs \
+  && pip3 install --break-system-packages yt-dlp
 COPY next/package.json next/bun.lock ./
 RUN bun install --frozen-lockfile
 
@@ -24,6 +26,9 @@ RUN bun run build
 # --- STAGE 4: Production Runner ---
 FROM oven/bun:alpine AS runner
 WORKDIR /app
+
+RUN apk add --no-cache ffmpeg python3 py3-pip nodejs \
+  && pip3 install --break-system-packages yt-dlp
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

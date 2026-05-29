@@ -1,6 +1,11 @@
 #!/bin/sh
 set -e
 
+# Ensure host-persisted media directory exists (bind-mounted at /data/media in Docker).
+if [ -n "$MEDIA_STORAGE_PATH" ]; then
+  mkdir -p "$MEDIA_STORAGE_PATH/posts"
+fi
+
 # Run Prisma bootstrap in development by default, or when explicitly enabled.
 if [ "$APP_ENV" = "development" ] || [ "$RUN_PRISMA_BOOTSTRAP" = "1" ]; then
   echo "Generating Prisma Client..."

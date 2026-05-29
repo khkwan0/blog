@@ -1,0 +1,1 @@
+ALTER TABLE "BlogEntry" ALTER COLUMN "title" DROP NOT NULL;
