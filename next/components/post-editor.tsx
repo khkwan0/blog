@@ -175,7 +175,7 @@ export function PostEditor() {
           disabled={loading || !editor}
           className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
         >
-          {loading ? "Publishing..." : "Publish"}
+          {loading ? "Scanning links and publishing..." : "Publish"}
         </button>
       </form>
     </section>

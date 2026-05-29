@@ -1,6 +1,7 @@
 import {
   localVideoUrl,
   parseVideoBlockContent,
+  youtubeEmbedUrl,
 } from "@/lib/video-types";
 
 type PostBlock = {
@@ -44,6 +45,32 @@ export function PostBlocks({ blocks }: PostBlocksProps) {
                 className="w-full rounded-lg bg-black"
                 src={localVideoUrl(video.localPath)}
               />
+            );
+          }
+
+          if (
+            video.status === "failed" &&
+            video.provider === "youtube" &&
+            video.videoId
+          ) {
+            return (
+              <div key={block.id} className="space-y-2">
+                <div className="aspect-video overflow-hidden rounded-lg bg-black">
+                  <iframe
+                    title="YouTube video"
+                    src={youtubeEmbedUrl(video.videoId)}
+                    className="h-full w-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+                <p className="text-xs text-muted">
+                  Local copy unavailable — showing embedded player. Add YouTube
+                  cookies to{" "}
+                  <code className="text-xs">storage/youtube-cookies.txt</code>{" "}
+                  and republish to download locally.
+                </p>
+              </div>
             );
           }
 

@@ -29,12 +29,14 @@ services:
       - /app/.next
       - ./prisma:/app/prisma
       - ./storage/media:/data/media
+      - ./storage/youtube-cookies.txt:/data/youtube-cookies.txt:ro
     env_file:
       - ./next/.env.development
     environment:
       - APP_ENV=development
       - RUN_PRISMA_BOOTSTRAP=1
       - MEDIA_STORAGE_PATH=/data/media
+      - YTDLP_COOKIES_PATH=/data/youtube-cookies.txt
       - ENABLE_VIDEO_DOWNLOAD=true
     depends_on:
       postgres:
@@ -54,6 +56,7 @@ services:
     volumes:
       - ./prisma:/app/prisma
       - ./storage/media:/data/media
+      - ./storage/youtube-cookies.txt:/data/youtube-cookies.txt:ro
     env_file:
       - ./next/.env.production
     environment:
@@ -61,6 +64,7 @@ services:
       - RUN_PRISMA_BOOTSTRAP=1
       - BETTER_AUTH_URL=https://blog.kkith.com
       - MEDIA_STORAGE_PATH=/data/media
+      - YTDLP_COOKIES_PATH=/data/youtube-cookies.txt
       - ENABLE_VIDEO_DOWNLOAD=true
     depends_on:
       postgres:

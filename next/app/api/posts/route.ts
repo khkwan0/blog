@@ -1,4 +1,3 @@
-import { after } from "next/server";
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
@@ -39,7 +38,7 @@ export async function POST(request: Request) {
   const body = (await request.json()) as CreatePostBody;
   const title = body.title?.trim() || null;
   const content = body.content?.trim();
-  const status = body.status === "DRAFT" ? "DRAFT" : "PUBLISHED";
+  const wantsPublish = body.status !== "DRAFT";
 
   if (!content || content === "<p></p>") {
     return NextResponse.json({ error: "Content is required." }, { status: 400 });
@@ -59,8 +58,8 @@ export async function POST(request: Request) {
       ...(title !== null ? { title } : {}),
       slug,
       excerpt: excerptFromHtml(content),
-      status,
-      publishedAt: status === "PUBLISHED" ? new Date() : null,
+      status: "DRAFT",
+      publishedAt: null,
       owner: { connect: { id: session.user.id } },
       blocks: {
         create: {
@@ -77,9 +76,26 @@ export async function POST(request: Request) {
     },
   });
 
-  after(() => {
-    void processPostVideos(post.id);
-  });
+  let media = null;
 
-  return NextResponse.json(post, { status: 201 });
+  if (wantsPublish) {
+    media = await processPostVideos(post.id);
+
+    await prisma.blogEntry.update({
+      where: { id: post.id },
+      data: {
+        status: "PUBLISHED",
+        publishedAt: new Date(),
+      },
+    });
+  }
+
+  return NextResponse.json(
+    {
+      ...post,
+      status: wantsPublish ? "PUBLISHED" : "DRAFT",
+      media,
+    },
+    { status: 201 },
+  );
 }

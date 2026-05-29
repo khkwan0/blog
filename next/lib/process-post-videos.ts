@@ -4,14 +4,71 @@ import { downloadVideo, isYtDlpAvailable } from "@/lib/video-download";
 import type { VideoBlockContent } from "@/lib/video-types";
 import { findVideoLinks } from "@/lib/video-url";
 
+export type ProcessPostVideosResult = {
+  linksFound: number;
+  videoLinksFound: number;
+  videosDownloaded: number;
+  videosFailed: number;
+};
+
 function videoDownloadsEnabled(): boolean {
   return process.env.ENABLE_VIDEO_DOWNLOAD !== "false";
 }
 
-export async function processPostVideos(blogEntryId: string): Promise<void> {
-  if (!videoDownloadsEnabled()) {
-    return;
+function parseVideoBlock(block: { id: string; content: string }) {
+  try {
+    return {
+      id: block.id,
+      content: JSON.parse(block.content) as VideoBlockContent,
+    };
+  } catch {
+    return null;
   }
+}
+
+async function markVideoFailed(
+  blockId: string,
+  content: VideoBlockContent,
+  error: string,
+) {
+  await prisma.blogEntryBlock.update({
+    where: { id: blockId },
+    data: {
+      content: JSON.stringify({
+        ...content,
+        status: "failed",
+        error,
+      } satisfies VideoBlockContent),
+    },
+  });
+}
+
+async function markVideoReady(
+  blockId: string,
+  content: VideoBlockContent,
+  localPath: string,
+) {
+  await prisma.blogEntryBlock.update({
+    where: { id: blockId },
+    data: {
+      content: JSON.stringify({
+        ...content,
+        status: "ready",
+        localPath,
+      } satisfies VideoBlockContent),
+    },
+  });
+}
+
+export async function processPostVideos(
+  blogEntryId: string,
+): Promise<ProcessPostVideosResult> {
+  const empty: ProcessPostVideosResult = {
+    linksFound: 0,
+    videoLinksFound: 0,
+    videosDownloaded: 0,
+    videosFailed: 0,
+  };
 
   const entry = await prisma.blogEntry.findUnique({
     where: { id: blogEntryId },
@@ -23,7 +80,7 @@ export async function processPostVideos(blogEntryId: string): Promise<void> {
   });
 
   if (!entry) {
-    return;
+    return empty;
   }
 
   const htmlContent = entry.blocks
@@ -31,86 +88,94 @@ export async function processPostVideos(blogEntryId: string): Promise<void> {
     .map((block) => block.content)
     .join("\n");
 
-  const videoLinks = findVideoLinks(extractLinksFromHtml(htmlContent));
-  if (videoLinks.length === 0) {
-    return;
+  const links = extractLinksFromHtml(htmlContent);
+  const videoLinks = findVideoLinks(links);
+
+  const result: ProcessPostVideosResult = {
+    linksFound: links.length,
+    videoLinksFound: videoLinks.length,
+    videosDownloaded: 0,
+    videosFailed: 0,
+  };
+
+  if (videoLinks.length === 0 || !videoDownloadsEnabled()) {
+    return result;
   }
 
-  const existingSourceUrls = new Set(
-    entry.blocks
-      .filter((block) => block.format === "VIDEO")
-      .map((block) => {
-        try {
-          return (JSON.parse(block.content) as VideoBlockContent).sourceUrl;
-        } catch {
-          return null;
-        }
-      })
-      .filter((url): url is string => Boolean(url)),
-  );
+  const existingVideoBlocks = new Map<
+    string,
+    { id: string; content: VideoBlockContent }
+  >();
+  for (const block of entry.blocks) {
+    if (block.format !== "VIDEO") {
+      continue;
+    }
+
+    const parsed = parseVideoBlock(block);
+    if (parsed) {
+      existingVideoBlocks.set(parsed.content.sourceUrl, parsed);
+    }
+  }
 
   const ytdlpAvailable = await isYtDlpAvailable();
   let sortOrder =
     entry.blocks.reduce((max, block) => Math.max(max, block.sortOrder), -1) + 1;
 
   for (const video of videoLinks) {
-    if (existingSourceUrls.has(video.url)) {
+    const existing = existingVideoBlocks.get(video.url);
+    if (existing?.content.status === "ready") {
       continue;
     }
 
     const pendingContent: VideoBlockContent = {
       sourceUrl: video.url,
       provider: video.provider,
+      videoId: video.videoId,
       status: "pending",
     };
 
-    const block = await prisma.blogEntryBlock.create({
-      data: {
-        blogEntryId,
-        format: "VIDEO",
-        content: JSON.stringify(pendingContent),
-        sortOrder: sortOrder++,
-      },
-    });
-
-    if (!ytdlpAvailable) {
+    let blockId: string;
+    if (existing) {
+      blockId = existing.id;
       await prisma.blogEntryBlock.update({
-        where: { id: block.id },
+        where: { id: blockId },
+        data: { content: JSON.stringify(pendingContent) },
+      });
+    } else {
+      const block = await prisma.blogEntryBlock.create({
         data: {
-          content: JSON.stringify({
-            ...pendingContent,
-            status: "failed",
-            error: "yt-dlp is not installed in this environment",
-          } satisfies VideoBlockContent),
+          blogEntryId,
+          format: "VIDEO",
+          content: JSON.stringify(pendingContent),
+          sortOrder: sortOrder++,
         },
       });
+      blockId = block.id;
+    }
+
+    if (!ytdlpAvailable) {
+      result.videosFailed += 1;
+      await markVideoFailed(
+        blockId,
+        pendingContent,
+        "yt-dlp is not installed in this environment",
+      );
       continue;
     }
 
     try {
       const localPath = await downloadVideo(video, blogEntryId);
-      await prisma.blogEntryBlock.update({
-        where: { id: block.id },
-        data: {
-          content: JSON.stringify({
-            ...pendingContent,
-            status: "ready",
-            localPath,
-          } satisfies VideoBlockContent),
-        },
-      });
+      result.videosDownloaded += 1;
+      await markVideoReady(blockId, pendingContent, localPath);
     } catch (error) {
-      await prisma.blogEntryBlock.update({
-        where: { id: block.id },
-        data: {
-          content: JSON.stringify({
-            ...pendingContent,
-            status: "failed",
-            error:
-              error instanceof Error ? error.message : "Video download failed",
-          } satisfies VideoBlockContent),
-        },
-      });
+      result.videosFailed += 1;
+      await markVideoFailed(
+        blockId,
+        pendingContent,
+        error instanceof Error ? error.message : "Video download failed",
+      );
     }
   }
+
+  return result;
 }

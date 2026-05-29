@@ -43,3 +43,7 @@ next-env.d.ts
 # downloaded post media
 /storage/media/*
 !/storage/media/.gitkeep
+/storage/media/.cache/
+
+# youtube auth cookies (never commit)
+/storage/youtube-cookies.txt
