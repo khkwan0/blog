@@ -14,11 +14,8 @@ FROM base AS builder
 COPY next/ .
 COPY prisma ./prisma
 
-# Generate Prisma Client before Next build (required for /api/auth route data collection).
-ENV DATABASE_URL="file:/tmp/build.db"
-ENV BETTER_AUTH_SECRET="docker-build-placeholder"
+ENV DATABASE_URL="postgresql://blog:blog@postgres:5432/blog_prod"
 ENV BETTER_AUTH_URL="http://localhost:3000"
-RUN touch /tmp/build.db
 RUN bunx prisma generate --config=./prisma.config.js
 
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -31,15 +28,14 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
+COPY next/package.json next/bun.lock ./
+RUN bun install --frozen-lockfile --production
+
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/entrypoint.sh ./entrypoint.sh
 COPY --from=builder /app/prisma.config.js ./prisma.config.js
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
-COPY --from=builder /app/node_modules/@prisma/adapter-better-sqlite3 ./node_modules/@prisma/adapter-better-sqlite3
 
 RUN chmod +x ./entrypoint.sh
 

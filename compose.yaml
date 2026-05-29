@@ -1,25 +1,41 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: blog
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-blog}
+      POSTGRES_DB: blog_prod
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init-databases.sql:/docker-entrypoint-initdb.d/init-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blog -d blog_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   # Development Mode
   dev:
     profiles: ["dev"]
     build:
       context: .
       dockerfile: next/Dockerfile
-      target: dev     # Fast development layer
+      target: dev
     ports:
       - "3000:3000"
     volumes:
       - ./next:/app
       - /app/node_modules
+      - /app/.next
       - ./prisma:/app/prisma
-      - sqlite-data:/data
     env_file:
       - ./next/.env.development
     environment:
       - APP_ENV=development
       - RUN_PRISMA_BOOTSTRAP=1
-      - BETTER_AUTH_URL=http://localhost:3000
-      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-dev-change-me}
+    depends_on:
+      postgres:
+        condition: service_healthy
     entrypoint: ./entrypoint.sh
     command: bun run dev
 
@@ -29,18 +45,22 @@ services:
     build:
       context: .
       dockerfile: next/Dockerfile
-      target: runner      # Tiny production runtime layer
+      target: runner
     ports:
       - "3000:3000"
     volumes:
       - ./prisma:/app/prisma
-      - sqlite-data:/data
     env_file:
       - ./next/.env.production
     environment:
       - APP_ENV=production
       - RUN_PRISMA_BOOTSTRAP=1
-    # Command is handled by Dockerfile (bun server.js)
+      - BETTER_AUTH_URL=https://blog.kkith.com
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: ["./entrypoint.sh"]
+    command: ["bun", "server.js"]
 
   # Prisma Studio for development DB
   studio-dev:
@@ -54,11 +74,13 @@ services:
       - ./next:/app
       - /app/node_modules
       - ./prisma:/app/prisma
-      - sqlite-data:/data
     environment:
-      - DATABASE_URL=file:/data/dev.db
+      - DATABASE_URL=postgresql://blog:blog@postgres:5432/blog_dev
+    depends_on:
+      postgres:
+        condition: service_healthy
     command: >
-      sh -c "bunx prisma studio --config=/app/prisma.config.js --url=file:/data/dev.db --port 5555 --browser none"
+      sh -c "bunx prisma studio --config=/app/prisma.config.js --url=postgresql://blog:blog@postgres:5432/blog_dev --port 5555 --browser none"
 
   # Prisma Studio for production DB
   studio-prod:
@@ -72,11 +94,13 @@ services:
       - ./next:/app
       - /app/node_modules
       - ./prisma:/app/prisma
-      - sqlite-data:/data
     environment:
-      - DATABASE_URL=file:/data/prod.db
+      - DATABASE_URL=postgresql://blog:blog@postgres:5432/blog_prod
+    depends_on:
+      postgres:
+        condition: service_healthy
     command: >
-      sh -c "bunx prisma studio --config=/app/prisma.config.js --url=file:/data/prod.db --port 5556 --browser none"
+      sh -c "bunx prisma studio --config=/app/prisma.config.js --url=postgresql://blog:blog@postgres:5432/blog_prod --port 5556 --browser none"
 
 volumes:
-  sqlite-data:
+  postgres-data:

@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
+  --background: #fafafa;
   --foreground: #171717;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 @theme inline {
@@ -12,15 +19,51 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer components {
+  .field-input {
+    @apply w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-foreground outline-none ring-emerald-500 focus:ring-2 dark:border-zinc-600 dark:bg-zinc-900;
+  }
+
+  .text-muted {
+    @apply text-zinc-600 dark:text-zinc-400;
+  }
+
+  .link-accent {
+    @apply text-emerald-700 hover:underline dark:text-emerald-400;
+  }
+
+  .tiptap-editor {
+    @apply text-foreground;
+  }
+
+  .tiptap-editor p {
+    @apply my-2;
+  }
+
+  .tiptap-editor h2 {
+    @apply mt-4 mb-2 text-xl font-semibold;
+  }
+
+  .tiptap-editor h3 {
+    @apply mt-3 mb-2 text-lg font-semibold;
+  }
+
+  .tiptap-editor ul {
+    @apply my-2 list-disc pl-6;
+  }
+
+  .tiptap-editor blockquote {
+    @apply my-2 border-l-4 border-zinc-300 pl-4 text-zinc-600 dark:border-zinc-600 dark:text-zinc-400;
+  }
+
+  .tiptap-editor p.is-editor-empty:first-child::before {
+    @apply pointer-events-none float-left h-0 text-zinc-400;
+    content: "Write your post...";
+  }
 }

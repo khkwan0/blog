@@ -34,8 +34,9 @@ export default function ForgotPasswordPage() {
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
       <h1 className="text-2xl font-semibold">Forgot password</h1>
-      <p className="mt-2 text-sm text-zinc-600">
-        Enter your email to receive a reset link.
+      <p className="mt-2 text-sm text-muted">
+        Enter the email on your account to receive a reset link. Phone-only
+        accounts can sign in with a phone code instead.
       </p>
 
       <form onSubmit={onSubmit} className="mt-8 space-y-4">
@@ -46,12 +47,14 @@ export default function ForgotPasswordPage() {
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 outline-none ring-emerald-500 focus:ring-2"
+            className="field-input"
           />
         </label>
 
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
-        {success ? <p className="text-sm text-emerald-700">{success}</p> : null}
+        {success ? (
+          <p className="text-sm text-emerald-700 dark:text-emerald-400">{success}</p>
+        ) : null}
 
         <button
           type="submit"
@@ -62,9 +65,9 @@ export default function ForgotPasswordPage() {
         </button>
       </form>
 
-      <p className="mt-6 text-sm text-zinc-700">
+      <p className="mt-6 text-sm text-zinc-700 dark:text-zinc-300">
         Back to{" "}
-        <Link href="/auth/login" className="text-emerald-700 hover:underline">
+        <Link href="/auth/login" className="link-accent">
           sign in
         </Link>
       </p>

@@ -50,7 +50,7 @@ function ResetPasswordForm() {
             required
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 outline-none ring-emerald-500 focus:ring-2"
+            className="field-input"
           />
         </label>
 
@@ -65,9 +65,9 @@ function ResetPasswordForm() {
         </button>
       </form>
 
-      <p className="mt-6 text-sm text-zinc-700">
+      <p className="mt-6 text-sm text-zinc-700 dark:text-zinc-300">
         Back to{" "}
-        <Link href="/auth/login" className="text-emerald-700 hover:underline">
+        <Link href="/auth/login" className="link-accent">
           sign in
         </Link>
       </p>
@@ -79,9 +79,9 @@ export default function ResetPasswordPage() {
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
       <h1 className="text-2xl font-semibold">Reset password</h1>
-      <p className="mt-2 text-sm text-zinc-600">Choose a new password.</p>
+      <p className="mt-2 text-sm text-muted">Choose a new password.</p>
 
-      <Suspense fallback={<p className="mt-8 text-sm text-zinc-600">Loading...</p>}>
+      <Suspense fallback={<p className="mt-8 text-sm text-muted">Loading...</p>}>
         <ResetPasswordForm />
       </Suspense>
     </main>
