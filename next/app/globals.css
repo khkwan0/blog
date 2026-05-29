@@ -35,7 +35,7 @@ body {
   }
 
   .link-accent {
-    @apply text-emerald-700 hover:underline dark:text-emerald-400;
+    @apply text-emerald-700 underline dark:text-emerald-400;
   }
 
   .tiptap-editor {
@@ -65,5 +65,46 @@ body {
   .tiptap-editor p.is-editor-empty:first-child::before {
     @apply pointer-events-none float-left h-0 text-zinc-400;
     content: "Write your post...";
+  }
+
+  .post-content {
+    @apply text-foreground;
+  }
+
+  .post-content p {
+    @apply my-2;
+  }
+
+  .post-content h2 {
+    @apply mt-4 mb-2 text-xl font-semibold;
+  }
+
+  .post-content h3 {
+    @apply mt-3 mb-2 text-lg font-semibold;
+  }
+
+  .post-content ul {
+    @apply my-2 list-disc pl-6;
+  }
+
+  .post-content ol {
+    @apply my-2 list-decimal pl-6;
+  }
+
+  .post-content blockquote {
+    @apply my-2 border-l-4 border-zinc-300 pl-4 text-zinc-600 dark:border-zinc-600 dark:text-zinc-400;
+  }
+
+  .post-content a,
+  .post-excerpt a {
+    @apply break-all text-emerald-700 underline dark:text-emerald-400;
+  }
+
+  .post-content strong {
+    @apply font-semibold;
+  }
+
+  .post-content em {
+    @apply italic;
   }
 }

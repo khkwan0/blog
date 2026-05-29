@@ -1,7 +1,8 @@
 // blog.kkith.com/prisma/schema.prisma
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -20,6 +21,8 @@ model User {
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @default(now()) @updatedAt
   blogEntries   BlogEntry[]
+  blogEntryLikes BlogEntryLike[]
+  blogEntryReplies BlogEntryReply[]
   sessions      Session[]
   accounts      Account[]
 }
@@ -93,6 +96,10 @@ model BlogEntry {
   ownerId     String
   owner       User             @relation(fields: [ownerId], references: [id], onDelete: Restrict)
   blocks      BlogEntryBlock[]
+  hashTags    HashTag[]
+  likes       BlogEntryLike[]
+  replies     BlogEntryReply[]
+  totalLikes  Int              @default(1)
   createdAt   DateTime         @default(now())
   modifiedAt  DateTime         @default(now()) @updatedAt
 
@@ -110,4 +117,40 @@ model BlogEntryBlock {
 
   @@unique([blogEntryId, sortOrder])
   @@index([blogEntryId])
+}
+
+model HashTag {
+  id          String    @id @default(cuid())
+  blogEntryId String
+  hashtag     String
+  display     String
+  blogEntry   BlogEntry @relation(fields: [blogEntryId], references: [id], onDelete: Cascade)
+
+  @@unique([blogEntryId, hashtag])
+  @@index([hashtag])
+  @@map("HashTags")
+}
+
+model BlogEntryLike {
+  id          String    @id @default(cuid())
+  blogEntryId String
+  userId      String
+  blogEntry   BlogEntry @relation(fields: [blogEntryId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@unique([blogEntryId, userId])
+  @@index([userId])
+}
+
+model BlogEntryReply {
+  id          String    @id @default(cuid())
+  blogEntryId String
+  userId      String
+  content     String
+  createdAt   DateTime  @default(now())
+  blogEntry   BlogEntry @relation(fields: [blogEntryId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([blogEntryId, createdAt])
 }

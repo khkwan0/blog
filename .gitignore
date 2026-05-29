@@ -47,3 +47,4 @@ next-env.d.ts
 
 # youtube auth cookies (never commit)
 /storage/youtube-cookies.txt
+/storage

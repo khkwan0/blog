@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { downloadVideo, isYtDlpAvailable } from "@/lib/video-download";
 import type { VideoBlockContent } from "@/lib/video-types";
 import { findVideoLinks } from "@/lib/video-url";
+import { isYoutubeEmbeddable } from "@/lib/youtube-embed";
 
 export type ProcessPostVideosResult = {
   linksFound: number;
@@ -60,6 +61,18 @@ async function markVideoReady(
   });
 }
 
+async function markVideoEmbedded(blockId: string, content: VideoBlockContent) {
+  await prisma.blogEntryBlock.update({
+    where: { id: blockId },
+    data: {
+      content: JSON.stringify({
+        ...content,
+        status: "embedded",
+      } satisfies VideoBlockContent),
+    },
+  });
+}
+
 export async function processPostVideos(
   blogEntryId: string,
 ): Promise<ProcessPostVideosResult> {
@@ -98,7 +111,7 @@ export async function processPostVideos(
     videosFailed: 0,
   };
 
-  if (videoLinks.length === 0 || !videoDownloadsEnabled()) {
+  if (videoLinks.length === 0) {
     return result;
   }
 
@@ -123,7 +136,10 @@ export async function processPostVideos(
 
   for (const video of videoLinks) {
     const existing = existingVideoBlocks.get(video.url);
-    if (existing?.content.status === "ready") {
+    if (
+      existing?.content.status === "ready" ||
+      existing?.content.status === "embedded"
+    ) {
       continue;
     }
 
@@ -151,6 +167,60 @@ export async function processPostVideos(
         },
       });
       blockId = block.id;
+    }
+
+    if (video.provider === "youtube") {
+      const embeddable = await isYoutubeEmbeddable(video.url);
+
+      if (embeddable) {
+        await markVideoEmbedded(blockId, pendingContent);
+        continue;
+      }
+
+      if (!videoDownloadsEnabled()) {
+        result.videosFailed += 1;
+        await markVideoFailed(
+          blockId,
+          pendingContent,
+          "YouTube embed unavailable and video download is disabled",
+        );
+        continue;
+      }
+
+      if (!ytdlpAvailable) {
+        result.videosFailed += 1;
+        await markVideoFailed(
+          blockId,
+          pendingContent,
+          "YouTube embed unavailable and yt-dlp is not installed",
+        );
+        continue;
+      }
+
+      try {
+        const localPath = await downloadVideo(video, blogEntryId);
+        result.videosDownloaded += 1;
+        await markVideoReady(blockId, pendingContent, localPath);
+      } catch (error) {
+        result.videosFailed += 1;
+        await markVideoFailed(
+          blockId,
+          pendingContent,
+          error instanceof Error ? error.message : "Video download failed",
+        );
+      }
+
+      continue;
+    }
+
+    if (!videoDownloadsEnabled()) {
+      result.videosFailed += 1;
+      await markVideoFailed(
+        blockId,
+        pendingContent,
+        "Video download is disabled",
+      );
+      continue;
     }
 
     if (!ytdlpAvailable) {

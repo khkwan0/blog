@@ -2,6 +2,8 @@ import { createReadStream } from "fs";
 import { stat } from "fs/promises";
 import path from "path";
 import { Readable } from "stream";
+import { prisma } from "@/lib/prisma";
+import { isPostPubliclyVisible } from "@/lib/posts";
 import { resolveMediaPath } from "@/lib/video-storage";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +24,18 @@ export async function GET(
 
   if (!relativePath.startsWith("posts/")) {
     return new Response("Not found", { status: 404 });
+  }
+
+  const postId = segments[1];
+  if (postId) {
+    const post = await prisma.blogEntry.findUnique({
+      where: { id: postId },
+      select: { status: true },
+    });
+
+    if (!post || !isPostPubliclyVisible(post.status)) {
+      return new Response("Not found", { status: 404 });
+    }
   }
 
   let absolutePath: string;

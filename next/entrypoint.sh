@@ -8,8 +8,10 @@ fi
 
 # Run Prisma bootstrap in development by default, or when explicitly enabled.
 if [ "$APP_ENV" = "development" ] || [ "$RUN_PRISMA_BOOTSTRAP" = "1" ]; then
-  echo "Generating Prisma Client..."
-  bunx prisma generate --config=/app/prisma.config.js
+  if [ "$APP_ENV" != "production" ]; then
+    echo "Generating Prisma Client..."
+    bunx prisma generate --config=/app/prisma.config.js
+  fi
 
   echo "Running database migrations..."
   bunx prisma migrate deploy --config=/app/prisma.config.js

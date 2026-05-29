@@ -4,7 +4,7 @@ export type VideoBlockContent = {
   sourceUrl: string;
   provider: VideoProvider;
   videoId: string;
-  status: "pending" | "ready" | "failed";
+  status: "pending" | "ready" | "embedded" | "failed";
   localPath?: string;
   error?: string;
 };

@@ -1,6 +1,9 @@
 "use client";
 
-import { ThemeProvider as NextThemesProvider } from "next-themes";
+import {
+  ThemeProvider as NextThemesProvider,
+  type ThemeProviderProps,
+} from "next-themes";
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   return (
@@ -9,6 +12,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       defaultTheme="dark"
       enableSystem={false}
       disableTransitionOnChange
+      scriptProps={
+        typeof window === "undefined"
+          ? undefined
+          : { type: "application/json" }
+      }
     >
       {children}
     </NextThemesProvider>

@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { processPostHashTags } from "@/lib/process-post-hashtags";
 import { processPostVideos } from "@/lib/process-post-videos";
 import { prisma } from "@/lib/prisma";
 import { uniqueSlug } from "@/lib/slug";
@@ -77,9 +78,11 @@ export async function POST(request: Request) {
   });
 
   let media = null;
+  let hashtags = null;
 
   if (wantsPublish) {
     media = await processPostVideos(post.id);
+    hashtags = await processPostHashTags(post.id);
 
     await prisma.blogEntry.update({
       where: { id: post.id },
@@ -95,6 +98,7 @@ export async function POST(request: Request) {
       ...post,
       status: wantsPublish ? "PUBLISHED" : "DRAFT",
       media,
+      hashtags,
     },
     { status: 201 },
   );

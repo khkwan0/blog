@@ -27,7 +27,7 @@ RUN bun run build
 FROM oven/bun:alpine AS runner
 WORKDIR /app
 
-RUN apk add --no-cache ffmpeg python3 py3-pip nodejs deno \
+RUN apk add --no-cache ffmpeg python3 py3-pip nodejs deno openssl \
   && pip3 install --break-system-packages "yt-dlp[default]"
 
 ENV NODE_ENV=production
@@ -41,6 +41,12 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/entrypoint.sh ./entrypoint.sh
 COPY --from=builder /app/prisma.config.js ./prisma.config.js
+COPY prisma ./prisma
+
+# Prisma client, engines, and CLI from builder (avoids network at container start).
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 
 RUN chmod +x ./entrypoint.sh
 
