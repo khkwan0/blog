@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-type PostActionsProps = {
-  postId: string;
-  postTitle?: string | null;
+type CommentActionsInnerProps = {
+  blogId: string;
+  commentId: string;
   totalLikes: number;
   likedByUser: boolean;
   isSignedIn: boolean;
@@ -72,13 +72,13 @@ function ShareIcon() {
 const actionClass =
   "rounded-md p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-emerald-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-emerald-400";
 
-export function PostActions({
-  postId,
-  postTitle,
+export function CommentActionsInner({
+  blogId,
+  commentId,
   totalLikes: initialTotalLikes,
   likedByUser: initialLiked,
   isSignedIn,
-}: PostActionsProps) {
+}: CommentActionsInnerProps) {
   const router = useRouter();
   const [liked, setLiked] = useState(initialLiked);
   const [totalLikes, setTotalLikes] = useState(initialTotalLikes);
@@ -97,9 +97,10 @@ export function PostActions({
 
     setLoading(true);
 
-    const response = await fetch(`/api/posts/${postId}/like`, {
-      method: "POST",
-    });
+    const response = await fetch(
+      `/api/posts/${blogId}/comments/${commentId}/like`,
+      { method: "POST" },
+    );
 
     setLoading(false);
 
@@ -117,15 +118,14 @@ export function PostActions({
   };
 
   const onShare = async () => {
-    const url = `${window.location.origin}/blog/${postId}`;
-    const shareData = {
-      title: postTitle ?? "shitsue",
-      url,
-    };
+    const url = `${window.location.origin}/blog/${blogId}/comment/${commentId}`;
 
     try {
       if (navigator.share) {
-        await navigator.share(shareData);
+        await navigator.share({
+          title: "shitsue",
+          url,
+        });
         setShared(true);
         return;
       }
@@ -138,12 +138,12 @@ export function PostActions({
   };
 
   return (
-    <div className="relative z-10 mt-4 flex items-center gap-1 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+    <div className="mt-3 flex items-center gap-1 border-t border-zinc-200 pt-3 dark:border-zinc-800">
       <Link
-        href={`/blog/${postId}`}
+        href={`/blog/${blogId}/comment/${commentId}`}
         className={actionClass}
-        aria-label="View post"
-        title="View post"
+        aria-label="Reply to comment"
+        title="Reply"
       >
         <ChatIcon />
       </Link>
@@ -155,7 +155,7 @@ export function PostActions({
         className={`${actionClass} flex items-center gap-1.5 disabled:opacity-50${
           liked ? " text-emerald-700 dark:text-emerald-400" : ""
         }`}
-        aria-label={liked ? "Unlike post" : "Like post"}
+        aria-label={liked ? "Unlike comment" : "Like comment"}
         title={liked ? "Unlike" : "Like"}
       >
         <ThumbsUpIcon filled={liked} />
@@ -166,7 +166,7 @@ export function PostActions({
         type="button"
         onClick={() => void onShare()}
         className={`${actionClass}${shared ? " text-emerald-700 dark:text-emerald-400" : ""}`}
-        aria-label="Share post"
+        aria-label="Share comment"
         title={shared ? "Link shared" : "Share"}
       >
         <ShareIcon />

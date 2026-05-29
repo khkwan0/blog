@@ -1,11 +1,11 @@
-import { youtubeEmbedUrl } from "@/lib/video-types";
+import { vimeoEmbedUrl } from "@/lib/video-types";
 
-type YoutubeEmbedProps = {
+type VimeoEmbedProps = {
   videoId: string;
   isLive?: boolean;
 };
 
-export function YoutubeEmbed({ videoId, isLive }: YoutubeEmbedProps) {
+export function VimeoEmbed({ videoId, isLive }: VimeoEmbedProps) {
   return (
     <div className="relative aspect-video overflow-hidden rounded-lg bg-black">
       {isLive ? (
@@ -14,11 +14,11 @@ export function YoutubeEmbed({ videoId, isLive }: YoutubeEmbedProps) {
         </span>
       ) : null}
       <iframe
-        title={isLive ? "YouTube live stream" : "YouTube video"}
-        src={`${youtubeEmbedUrl(videoId)}?rel=0`}
+        title="Vimeo video"
+        src={`${vimeoEmbedUrl(videoId)}?title=0&byline=0&portrait=0`}
         className="h-full w-full"
         loading="lazy"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allow="autoplay; fullscreen; picture-in-picture"
         allowFullScreen
       />
     </div>

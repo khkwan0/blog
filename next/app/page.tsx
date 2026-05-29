@@ -101,7 +101,12 @@ export default async function Home() {
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
       <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-6 py-4 pr-36">
-          <h1 className="text-xl font-semibold tracking-tight">blog.kkith.com</h1>
+          <Link
+            href="/"
+            className="text-xl font-semibold tracking-tight hover:text-accent"
+          >
+            shitsue
+          </Link>
           <HeaderNav
             isSignedIn={Boolean(session)}
             username={session?.user.name ?? null}

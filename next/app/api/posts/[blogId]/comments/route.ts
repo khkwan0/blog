@@ -1,9 +1,9 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
+import { COMMENT_SECTION, isCommentSection } from "@/lib/api-section";
 import { auth } from "@/lib/auth";
 import { publicPostWhere } from "@/lib/posts";
 import { prisma } from "@/lib/prisma";
-import { isReplySection, REPLY_SECTION } from "@/lib/api-section";
 
 export const dynamic = "force-dynamic";
 
@@ -11,9 +11,10 @@ type RouteContext = {
   params: Promise<{ blogId: string }>;
 };
 
-type CreateReplyBody = {
+type CreateCommentBody = {
   content?: string;
   section?: string;
+  parentId?: string | null;
 };
 
 function isEmptyHtml(html: string): boolean {
@@ -31,11 +32,11 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const { blogId } = await context.params;
-  const body = (await request.json()) as CreateReplyBody;
+  const body = (await request.json()) as CreateCommentBody;
 
-  if (!isReplySection(body.section)) {
+  if (!isCommentSection(body.section)) {
     return NextResponse.json(
-      { error: `Invalid section. Expected "${REPLY_SECTION}".` },
+      { error: `Invalid section. Expected "${COMMENT_SECTION}".` },
       { status: 400 },
     );
   }
@@ -54,14 +55,29 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Post not found" }, { status: 404 });
   }
 
-  const reply = await prisma.blogEntryReply.create({
+  const parentId = body.parentId?.trim() || null;
+
+  if (parentId) {
+    const parent = await prisma.comment.findFirst({
+      where: { id: parentId, blogEntryId: blogId },
+      select: { id: true },
+    });
+
+    if (!parent) {
+      return NextResponse.json({ error: "Parent comment not found." }, { status: 404 });
+    }
+  }
+
+  const comment = await prisma.comment.create({
     data: {
       blogEntryId: blogId,
       userId: session.user.id,
+      parentId,
       content,
     },
     select: {
       id: true,
+      parentId: true,
       content: true,
       createdAt: true,
       user: {
@@ -72,5 +88,5 @@ export async function POST(request: Request, context: RouteContext) {
     },
   });
 
-  return NextResponse.json(reply, { status: 201 });
+  return NextResponse.json(comment, { status: 201 });
 }

@@ -5,7 +5,7 @@ import StarterKit from "@tiptap/starter-kit";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
-import { REPLY_SECTION } from "@/lib/api-section";
+import { COMMENT_SECTION } from "@/lib/api-section";
 
 type ToolbarButtonProps = {
   active?: boolean;
@@ -38,15 +38,21 @@ function ToolbarButton({
   );
 }
 
-type ReplyEditorInnerProps = {
+type CommentEditorInnerProps = {
   blogEntryId: string;
+  parentId?: string | null;
   isSignedIn: boolean;
+  heading?: string;
+  submitLabel?: string;
 };
 
-export function ReplyEditorInner({
+export function CommentEditorInner({
   blogEntryId,
+  parentId = null,
   isSignedIn,
-}: ReplyEditorInnerProps) {
+  heading = "Comment",
+  submitLabel = "Post comment",
+}: CommentEditorInnerProps) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -71,19 +77,20 @@ export function ReplyEditorInner({
     const isEmpty = !editor.getText().trim() || content === "<p></p>";
 
     if (isEmpty) {
-      setError("Add a reply before posting.");
+      setError("Add a comment before posting.");
       return;
     }
 
     setError("");
     setLoading(true);
 
-    const response = await fetch(`/api/posts/${blogEntryId}/replies`, {
+    const response = await fetch(`/api/posts/${blogEntryId}/comments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        section: REPLY_SECTION,
+        section: COMMENT_SECTION,
         content,
+        parentId,
       }),
     });
 
@@ -93,7 +100,7 @@ export function ReplyEditorInner({
       const data = (await response.json().catch(() => null)) as {
         error?: string;
       } | null;
-      setError(data?.error ?? "Unable to post reply.");
+      setError(data?.error ?? "Unable to post comment.");
       return;
     }
 
@@ -108,7 +115,7 @@ export function ReplyEditorInner({
           <Link href="/auth/login" className="link-accent">
             Sign in
           </Link>{" "}
-          to reply.
+          to comment.
         </p>
       </section>
     );
@@ -116,7 +123,7 @@ export function ReplyEditorInner({
 
   return (
     <section className="mt-8 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-      <h2 className="text-lg font-semibold tracking-tight">Reply</h2>
+      <h2 className="text-lg font-semibold tracking-tight">{heading}</h2>
 
       <form onSubmit={onSubmit} className="mt-4 space-y-4">
         <div>
@@ -162,7 +169,7 @@ export function ReplyEditorInner({
           disabled={loading || !editor}
           className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
         >
-          {loading ? "Posting…" : "Post reply"}
+          {loading ? "Posting…" : submitLabel}
         </button>
       </form>
     </section>

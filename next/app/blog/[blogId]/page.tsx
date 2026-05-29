@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CommentEditor } from "@/components/comment-editor";
+import { CommentsList } from "@/components/comments-list";
 import { PostDeleteButton } from "@/components/post-delete-button";
 import { PostBlocks } from "@/components/post-blocks";
-import { PostHtmlContent, RepliesHtml } from "@/components/post-html-content";
-import { ReplyEditor } from "@/components/reply-editor";
+import { PostHtmlContent } from "@/components/post-html-content";
 import { HeaderNav } from "@/components/header-nav";
 import { auth } from "@/lib/auth";
+import { fetchCommentsForPost, likedCommentIds } from "@/lib/comments";
 import { publicPostWhere } from "@/lib/posts";
 import { prisma } from "@/lib/prisma";
 
@@ -70,25 +72,29 @@ export default async function BlogPostPage({ params }: PageProps) {
           sortOrder: true,
         },
       },
-      replies: {
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          content: true,
-          createdAt: true,
-          user: {
-            select: {
-              name: true,
-            },
-          },
-        },
-      },
     },
   });
 
   if (!post) {
     notFound();
   }
+
+  const comments = await fetchCommentsForPost(blogId, null);
+  const likedIds = session
+    ? await likedCommentIds(
+        session.user.id,
+        comments.map((comment) => comment.id),
+      )
+    : new Set<string>();
+
+  const commentItems = comments.map((comment) => ({
+    id: comment.id,
+    content: comment.content,
+    createdAt: comment.createdAt,
+    totalLikes: comment.totalLikes,
+    likedByUser: likedIds.has(comment.id),
+    user: comment.user,
+  }));
 
   const htmlContent = post.blocks
     .filter((block) => block.format === "HTML")
@@ -105,7 +111,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             href="/"
             className="text-xl font-semibold tracking-tight hover:text-accent"
           >
-            blog.kkith.com
+            shitsue
           </Link>
           <HeaderNav
             isSignedIn={Boolean(session)}
@@ -139,8 +145,12 @@ export default async function BlogPostPage({ params }: PageProps) {
           ) : null}
         </article>
 
-        <RepliesHtml replies={post.replies} />
-        <ReplyEditor blogEntryId={post.id} isSignedIn={Boolean(session)} />
+        <CommentEditor blogEntryId={post.id} isSignedIn={Boolean(session)} />
+        <CommentsList
+          blogId={post.id}
+          comments={commentItems}
+          isSignedIn={Boolean(session)}
+        />
       </main>
     </div>
   );

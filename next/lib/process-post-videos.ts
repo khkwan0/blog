@@ -2,7 +2,11 @@ import { extractLinksFromHtml } from "@/lib/extract-links";
 import { prisma } from "@/lib/prisma";
 import { downloadVideo, isYtDlpAvailable } from "@/lib/video-download";
 import type { VideoBlockContent } from "@/lib/video-types";
-import { findVideoLinks } from "@/lib/video-url";
+import {
+  findVideoLinks,
+  isEmbedOnlyVideo,
+  type ParsedVideoUrl,
+} from "@/lib/video-url";
 import { isYoutubeEmbeddable } from "@/lib/youtube-embed";
 
 export type ProcessPostVideosResult = {
@@ -25,6 +29,18 @@ function parseVideoBlock(block: { id: string; content: string }) {
   } catch {
     return null;
   }
+}
+
+function blockContentFromVideo(video: ParsedVideoUrl): VideoBlockContent {
+  return {
+    sourceUrl: video.url,
+    provider: video.provider,
+    videoId: video.videoId,
+    status: "pending",
+    ...(video.isLive ? { isLive: true } : {}),
+    ...(video.streamKind ? { streamKind: video.streamKind } : {}),
+    ...(video.directType ? { directType: video.directType } : {}),
+  };
 }
 
 async function markVideoFailed(
@@ -71,6 +87,96 @@ async function markVideoEmbedded(blockId: string, content: VideoBlockContent) {
       } satisfies VideoBlockContent),
     },
   });
+}
+
+async function tryDownloadVideo(
+  video: ParsedVideoUrl,
+  blockId: string,
+  pendingContent: VideoBlockContent,
+  blogEntryId: string,
+  result: ProcessPostVideosResult,
+) {
+  if (!videoDownloadsEnabled()) {
+    result.videosFailed += 1;
+    await markVideoFailed(
+      blockId,
+      pendingContent,
+      "Video download is disabled",
+    );
+    return;
+  }
+
+  if (!(await isYtDlpAvailable())) {
+    result.videosFailed += 1;
+    await markVideoFailed(
+      blockId,
+      pendingContent,
+      "yt-dlp is not installed in this environment",
+    );
+    return;
+  }
+
+  try {
+    const localPath = await downloadVideo(video, blogEntryId);
+    result.videosDownloaded += 1;
+    await markVideoReady(blockId, pendingContent, localPath);
+  } catch (error) {
+    result.videosFailed += 1;
+    await markVideoFailed(
+      blockId,
+      pendingContent,
+      error instanceof Error ? error.message : "Video download failed",
+    );
+  }
+}
+
+async function processYoutubeVideo(
+  video: ParsedVideoUrl,
+  blockId: string,
+  pendingContent: VideoBlockContent,
+  blogEntryId: string,
+  result: ProcessPostVideosResult,
+) {
+  const embeddable =
+    video.isLive === true || (await isYoutubeEmbeddable(video.url));
+
+  if (embeddable) {
+    await markVideoEmbedded(blockId, pendingContent);
+    return;
+  }
+
+  if (!videoDownloadsEnabled()) {
+    result.videosFailed += 1;
+    await markVideoFailed(
+      blockId,
+      pendingContent,
+      "YouTube embed unavailable and video download is disabled",
+    );
+    return;
+  }
+
+  if (!(await isYtDlpAvailable())) {
+    result.videosFailed += 1;
+    await markVideoFailed(
+      blockId,
+      pendingContent,
+      "YouTube embed unavailable and yt-dlp is not installed",
+    );
+    return;
+  }
+
+  try {
+    const localPath = await downloadVideo(video, blogEntryId);
+    result.videosDownloaded += 1;
+    await markVideoReady(blockId, pendingContent, localPath);
+  } catch (error) {
+    result.videosFailed += 1;
+    await markVideoFailed(
+      blockId,
+      pendingContent,
+      error instanceof Error ? error.message : "Video download failed",
+    );
+  }
 }
 
 export async function processPostVideos(
@@ -130,7 +236,6 @@ export async function processPostVideos(
     }
   }
 
-  const ytdlpAvailable = await isYtDlpAvailable();
   let sortOrder =
     entry.blocks.reduce((max, block) => Math.max(max, block.sortOrder), -1) + 1;
 
@@ -143,12 +248,7 @@ export async function processPostVideos(
       continue;
     }
 
-    const pendingContent: VideoBlockContent = {
-      sourceUrl: video.url,
-      provider: video.provider,
-      videoId: video.videoId,
-      status: "pending",
-    };
+    const pendingContent = blockContentFromVideo(video);
 
     let blockId: string;
     if (existing) {
@@ -169,82 +269,34 @@ export async function processPostVideos(
       blockId = block.id;
     }
 
+    if (isEmbedOnlyVideo(video)) {
+      await markVideoEmbedded(blockId, pendingContent);
+      continue;
+    }
+
     if (video.provider === "youtube") {
-      const embeddable = await isYoutubeEmbeddable(video.url);
-
-      if (embeddable) {
-        await markVideoEmbedded(blockId, pendingContent);
-        continue;
-      }
-
-      if (!videoDownloadsEnabled()) {
-        result.videosFailed += 1;
-        await markVideoFailed(
-          blockId,
-          pendingContent,
-          "YouTube embed unavailable and video download is disabled",
-        );
-        continue;
-      }
-
-      if (!ytdlpAvailable) {
-        result.videosFailed += 1;
-        await markVideoFailed(
-          blockId,
-          pendingContent,
-          "YouTube embed unavailable and yt-dlp is not installed",
-        );
-        continue;
-      }
-
-      try {
-        const localPath = await downloadVideo(video, blogEntryId);
-        result.videosDownloaded += 1;
-        await markVideoReady(blockId, pendingContent, localPath);
-      } catch (error) {
-        result.videosFailed += 1;
-        await markVideoFailed(
-          blockId,
-          pendingContent,
-          error instanceof Error ? error.message : "Video download failed",
-        );
-      }
-
-      continue;
-    }
-
-    if (!videoDownloadsEnabled()) {
-      result.videosFailed += 1;
-      await markVideoFailed(
+      await processYoutubeVideo(
+        video,
         blockId,
         pendingContent,
-        "Video download is disabled",
+        blogEntryId,
+        result,
       );
       continue;
     }
 
-    if (!ytdlpAvailable) {
-      result.videosFailed += 1;
-      await markVideoFailed(
-        blockId,
-        pendingContent,
-        "yt-dlp is not installed in this environment",
-      );
+    if (video.provider === "vimeo") {
+      await markVideoEmbedded(blockId, pendingContent);
       continue;
     }
 
-    try {
-      const localPath = await downloadVideo(video, blogEntryId);
-      result.videosDownloaded += 1;
-      await markVideoReady(blockId, pendingContent, localPath);
-    } catch (error) {
-      result.videosFailed += 1;
-      await markVideoFailed(
-        blockId,
-        pendingContent,
-        error instanceof Error ? error.message : "Video download failed",
-      );
-    }
+    await tryDownloadVideo(
+      video,
+      blockId,
+      pendingContent,
+      blogEntryId,
+      result,
+    );
   }
 
   return result;

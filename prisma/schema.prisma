@@ -22,7 +22,8 @@ model User {
   updatedAt     DateTime    @default(now()) @updatedAt
   blogEntries   BlogEntry[]
   blogEntryLikes BlogEntryLike[]
-  blogEntryReplies BlogEntryReply[]
+  comments      Comment[]
+  commentLikes  CommentLike[]
   sessions      Session[]
   accounts      Account[]
 }
@@ -98,7 +99,7 @@ model BlogEntry {
   blocks      BlogEntryBlock[]
   hashTags    HashTag[]
   likes       BlogEntryLike[]
-  replies     BlogEntryReply[]
+  comments    Comment[]
   totalLikes  Int              @default(1)
   createdAt   DateTime         @default(now())
   modifiedAt  DateTime         @default(now()) @updatedAt
@@ -143,14 +144,33 @@ model BlogEntryLike {
   @@index([userId])
 }
 
-model BlogEntryReply {
-  id          String    @id @default(cuid())
+model Comment {
+  id          String        @id @default(cuid())
   blogEntryId String
   userId      String
+  parentId    String?
   content     String
-  createdAt   DateTime  @default(now())
-  blogEntry   BlogEntry @relation(fields: [blogEntryId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalLikes  Int           @default(1)
+  createdAt   DateTime      @default(now())
+  blogEntry   BlogEntry     @relation(fields: [blogEntryId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent      Comment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies     Comment[]     @relation("CommentReplies")
+  likes       CommentLike[]
 
-  @@index([blogEntryId, createdAt])
+  @@index([blogEntryId, parentId, createdAt])
+  @@index([parentId])
+  @@map("Comments")
+}
+
+model CommentLike {
+  id        String   @id @default(cuid())
+  commentId String
+  userId    String
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([commentId, userId])
+  @@index([userId])
 }

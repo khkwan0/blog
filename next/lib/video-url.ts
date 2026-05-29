@@ -3,13 +3,26 @@ export type VideoProvider =
   | "vimeo"
   | "tiktok"
   | "twitter"
-  | "instagram";
+  | "instagram"
+  | "twitch"
+  | "kick"
+  | "direct";
+
+export type StreamKind = "channel" | "video";
+
+export type DirectMediaType = "file" | "hls";
 
 export type ParsedVideoUrl = {
   provider: VideoProvider;
   url: string;
   videoId: string;
+  isLive?: boolean;
+  streamKind?: StreamKind;
+  directType?: DirectMediaType;
 };
+
+const VIDEO_FILE_PATTERN = /\.(mp4|webm|mov|mkv|m4v)(\?|$)/i;
+const HLS_PATTERN = /\.m3u8(\?|$)/i;
 
 function parseYoutube(url: URL): ParsedVideoUrl | null {
   const host = url.hostname.replace(/^www\./, "");
@@ -31,6 +44,17 @@ function parseYoutube(url: URL): ParsedVideoUrl | null {
       return id
         ? { provider: "youtube", videoId: id, url: `https://www.youtube.com/watch?v=${id}` }
         : null;
+    }
+
+    const liveMatch = url.pathname.match(/^\/live\/([\w-]{11})/);
+    if (liveMatch) {
+      const id = liveMatch[1]!;
+      return {
+        provider: "youtube",
+        videoId: id,
+        url: `https://www.youtube.com/watch?v=${id}`,
+        isLive: true,
+      };
     }
 
     const shortsMatch = url.pathname.match(/^\/shorts\/([\w-]{11})/);
@@ -119,6 +143,111 @@ function parseInstagram(url: URL): ParsedVideoUrl | null {
   };
 }
 
+function parseTwitch(url: URL): ParsedVideoUrl | null {
+  const host = url.hostname.replace(/^www\./, "");
+
+  if (host === "player.twitch.tv") {
+    const channel = url.searchParams.get("channel");
+    if (channel) {
+      return {
+        provider: "twitch",
+        videoId: channel,
+        url: `https://www.twitch.tv/${channel}`,
+        isLive: true,
+        streamKind: "channel",
+      };
+    }
+
+    const video = url.searchParams.get("video");
+    if (video) {
+      return {
+        provider: "twitch",
+        videoId: video,
+        url: `https://www.twitch.tv/videos/${video}`,
+        streamKind: "video",
+      };
+    }
+
+    return null;
+  }
+
+  if (host !== "twitch.tv" && host !== "m.twitch.tv") {
+    return null;
+  }
+
+  const vodMatch = url.pathname.match(/^\/videos\/(\d+)/);
+  if (vodMatch) {
+    return {
+      provider: "twitch",
+      videoId: vodMatch[1]!,
+      url: url.toString(),
+      streamKind: "video",
+    };
+  }
+
+  const channelMatch = url.pathname.match(/^\/([^/]+)\/?$/);
+  const reserved = new Set(["videos", "directory", "p", "downloads", "settings"]);
+  if (channelMatch && !reserved.has(channelMatch[1]!)) {
+    const channel = channelMatch[1]!;
+    return {
+      provider: "twitch",
+      videoId: channel,
+      url: `https://www.twitch.tv/${channel}`,
+      isLive: true,
+      streamKind: "channel",
+    };
+  }
+
+  return null;
+}
+
+function parseKick(url: URL): ParsedVideoUrl | null {
+  const host = url.hostname.replace(/^www\./, "");
+  if (host !== "kick.com") {
+    return null;
+  }
+
+  const channelMatch = url.pathname.match(/^\/([^/]+)\/?$/);
+  const reserved = new Set(["video", "categories", "browse", "following"]);
+  if (!channelMatch || reserved.has(channelMatch[1]!)) {
+    return null;
+  }
+
+  const channel = channelMatch[1]!;
+  return {
+    provider: "kick",
+    videoId: channel,
+    url: `https://kick.com/${channel}`,
+    isLive: true,
+    streamKind: "channel",
+  };
+}
+
+function parseDirectMedia(url: URL): ParsedVideoUrl | null {
+  const target = `${url.pathname}${url.search}`;
+
+  if (HLS_PATTERN.test(target)) {
+    return {
+      provider: "direct",
+      videoId: url.toString(),
+      url: url.toString(),
+      isLive: true,
+      directType: "hls",
+    };
+  }
+
+  if (VIDEO_FILE_PATTERN.test(target)) {
+    return {
+      provider: "direct",
+      videoId: url.toString(),
+      url: url.toString(),
+      directType: "file",
+    };
+  }
+
+  return null;
+}
+
 export function parseVideoUrl(rawUrl: string): ParsedVideoUrl | null {
   try {
     const url = new URL(rawUrl);
@@ -128,7 +257,10 @@ export function parseVideoUrl(rawUrl: string): ParsedVideoUrl | null {
 
     return (
       parseYoutube(url) ??
+      parseTwitch(url) ??
+      parseKick(url) ??
       parseVimeo(url) ??
+      parseDirectMedia(url) ??
       parseTiktok(url) ??
       parseTwitter(url) ??
       parseInstagram(url)
@@ -153,4 +285,13 @@ export function findVideoLinks(links: string[]): ParsedVideoUrl[] {
   }
 
   return videos;
+}
+
+export function isEmbedOnlyVideo(video: ParsedVideoUrl): boolean {
+  return (
+    video.provider === "direct" ||
+    video.provider === "twitch" ||
+    video.provider === "kick" ||
+    video.isLive === true
+  );
 }

@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "blog.kkith.com",
+  title: "shitsue",
   description: "Blog posts",
 };
 
