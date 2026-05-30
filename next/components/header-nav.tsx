@@ -41,9 +41,13 @@ export function HeaderNav({
   return (
     <nav className="flex items-center gap-3 text-sm">
       <Link
-        href="/settings"
+        href={
+          username
+            ? `/user/${encodeURIComponent(username)}`
+            : "/"
+        }
         className="flex items-center gap-2 text-muted hover:text-foreground"
-        title="Account settings"
+        title="Your profile"
       >
         <UserAvatar
           name={username ?? "?"}
