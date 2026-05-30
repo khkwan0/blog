@@ -5,6 +5,7 @@ import { FollowButton } from "@/components/follow-button";
 import { FeedPostCard } from "@/components/feed-post-card";
 import { FollowingPreview } from "@/components/following-preview";
 import { HeaderNav } from "@/components/header-nav";
+import { SiteHeader } from "@/components/site-header";
 import { UserAvatar } from "@/components/user-avatar";
 import { auth } from "@/lib/auth";
 import { feedPostTargetIds, toFeedPostView } from "@/lib/post-display";
@@ -87,21 +88,13 @@ export default async function UserProfilePage({ params }: PageProps) {
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
-      <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-6 py-4 pr-36">
-          <Link
-            href="/"
-            className="text-xl font-semibold tracking-tight hover:text-accent"
-          >
-            shitsue
-          </Link>
-          <HeaderNav
-            isSignedIn={Boolean(session)}
-            username={session?.user.name ?? null}
-            avatarImage={session?.user.image}
-          />
-        </div>
-      </header>
+      <SiteHeader>
+        <HeaderNav
+          isSignedIn={Boolean(session)}
+          username={session?.user.name ?? null}
+          avatarImage={session?.user.image}
+        />
+      </SiteHeader>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <Link href="/" className="text-sm text-muted link-accent">

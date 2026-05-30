@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AvatarEditor } from "@/components/avatar-editor";
 import { HeaderNav } from "@/components/header-nav";
+import { SiteHeader } from "@/components/site-header";
 import { UserContentColors } from "@/components/user-content-colors";
 import { auth } from "@/lib/auth";
 import { getDefaultContentColors } from "@/lib/content-colors";
@@ -24,21 +25,13 @@ export default async function SettingsPage() {
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
-      <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-6 py-4 pr-36">
-          <Link
-            href="/"
-            className="text-xl font-semibold tracking-tight hover:text-accent"
-          >
-            shitsue
-          </Link>
-          <HeaderNav
-            isSignedIn
-            username={session.user.name}
-            avatarImage={session.user.image}
-          />
-        </div>
-      </header>
+      <SiteHeader>
+        <HeaderNav
+          isSignedIn
+          username={session.user.name}
+          avatarImage={session.user.image}
+        />
+      </SiteHeader>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>

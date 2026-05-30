@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
-import Link from "next/link";
 import { FeedPostCard } from "@/components/feed-post-card";
+import { SiteHeader } from "@/components/site-header";
 import { HeaderNav } from "@/components/header-nav";
 import { FollowingStrip } from "@/components/following-strip";
 import { PostEditor } from "@/components/post-editor";
@@ -71,21 +71,13 @@ export default async function Home() {
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
-      <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4 pr-36">
-          <Link
-            href="/"
-            className="text-xl font-semibold tracking-tight hover:text-accent"
-          >
-            shitsue
-          </Link>
-          <HeaderNav
-            isSignedIn={Boolean(session)}
-            username={session?.user.name ?? null}
-            avatarImage={session?.user.image}
-          />
-        </div>
-      </header>
+      <SiteHeader maxWidthClass="max-w-5xl">
+        <HeaderNav
+          isSignedIn={Boolean(session)}
+          username={session?.user.name ?? null}
+          avatarImage={session?.user.image}
+        />
+      </SiteHeader>
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
         {session && myCounts && contentStats ? (
