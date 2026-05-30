@@ -7,10 +7,17 @@ import { CommentEditor } from "@/components/comment-editor";
 import { CommentsList } from "@/components/comments-list";
 import { PostHtmlContent } from "@/components/post-html-content";
 import { HeaderNav } from "@/components/header-nav";
+import { UserProfileLink } from "@/components/user-profile-link";
 import { auth } from "@/lib/auth";
-import { fetchCommentsForPost, likedCommentIds } from "@/lib/comments";
-import { publicPostWhere } from "@/lib/posts";
-import { prisma } from "@/lib/prisma";
+import {
+  fetchCommentsForPost,
+  getCommentOnPost,
+  getCommentThreadMetadata,
+  likedCommentIds,
+} from "@/lib/read/comments";
+import { getPublishedPostSummary } from "@/lib/read/posts";
+import { followedUserIds } from "@/lib/read/social-graph";
+import { formatPostTimestamp } from "@/lib/format-datetime";
 
 export const dynamic = "force-dynamic";
 
@@ -18,24 +25,10 @@ type PageProps = {
   params: Promise<{ blogId: string; commentId: string }>;
 };
 
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { blogId, commentId } = await params;
 
-  const comment = await prisma.comment.findFirst({
-    where: { id: commentId, blogEntryId: blogId },
-    select: {
-      blogEntry: {
-        select: { title: true, status: true },
-      },
-    },
-  });
+  const comment = await getCommentThreadMetadata(blogId, commentId);
 
   if (!comment || comment.blogEntry.status !== "PUBLISHED") {
     return { title: "Comment not found" };
@@ -55,32 +48,13 @@ export default async function CommentThreadPage({ params }: PageProps) {
     headers: await headers(),
   });
 
-  const post = await prisma.blogEntry.findFirst({
-    where: { id: blogId, ...publicPostWhere },
-    select: {
-      id: true,
-      title: true,
-    },
-  });
+  const post = await getPublishedPostSummary(blogId);
 
   if (!post) {
     notFound();
   }
 
-  const parentComment = await prisma.comment.findFirst({
-    where: { id: commentId, blogEntryId: blogId },
-    select: {
-      id: true,
-      content: true,
-      createdAt: true,
-      totalLikes: true,
-      user: {
-        select: {
-          name: true,
-        },
-      },
-    },
-  });
+  const parentComment = await getCommentOnPost(blogId, commentId);
 
   if (!parentComment) {
     notFound();
@@ -92,9 +66,18 @@ export default async function CommentThreadPage({ params }: PageProps) {
     ? await likedCommentIds(session.user.id, allIds)
     : new Set<string>();
 
+  const authorIds = [
+    parentComment.user.id,
+    ...replies.map((reply) => reply.user.id),
+  ];
+  const followedAuthors = session
+    ? await followedUserIds(session.user.id, authorIds)
+    : new Set<string>();
+
   const parentItem = {
     ...parentComment,
     likedByUser: likedIds.has(parentComment.id),
+    followedByViewer: followedAuthors.has(parentComment.user.id),
   };
 
   const replyItems = replies.map((reply) => ({
@@ -104,6 +87,7 @@ export default async function CommentThreadPage({ params }: PageProps) {
     totalLikes: reply.totalLikes,
     likedByUser: likedIds.has(reply.id),
     user: reply.user,
+    followedByViewer: followedAuthors.has(reply.user.id),
   }));
 
   return (
@@ -119,6 +103,7 @@ export default async function CommentThreadPage({ params }: PageProps) {
           <HeaderNav
             isSignedIn={Boolean(session)}
             username={session?.user.name ?? null}
+            avatarImage={session?.user.image}
           />
         </div>
       </header>
@@ -132,9 +117,16 @@ export default async function CommentThreadPage({ params }: PageProps) {
         </Link>
 
         <article className="mt-6 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            {parentItem.user.name}
-            {` · ${formatDate(parentItem.createdAt)}`}
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
+            <UserProfileLink
+              username={parentItem.user.name}
+              userId={parentItem.user.id}
+              isSignedIn={Boolean(session)}
+              viewerId={session?.user.id}
+              initialFollowing={parentItem.followedByViewer}
+            />
+            <span aria-hidden>·</span>
+            <span>{formatPostTimestamp(parentItem.createdAt)}</span>
           </p>
           <PostHtmlContent
             html={parentItem.content}
@@ -161,6 +153,7 @@ export default async function CommentThreadPage({ params }: PageProps) {
           blogId={blogId}
           comments={replyItems}
           isSignedIn={Boolean(session)}
+          viewerId={session?.user.id}
           heading="Replies"
           emptyMessage="No replies yet."
         />

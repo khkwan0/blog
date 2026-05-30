@@ -35,7 +35,7 @@ body {
   }
 
   .link-accent {
-    @apply text-emerald-700 underline dark:text-emerald-400;
+    @apply text-emerald-700 no-underline hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300;
   }
 
   .tiptap-editor {
@@ -95,8 +95,42 @@ body {
     @apply my-2 border-l-4 border-zinc-300 pl-4 text-zinc-600 dark:border-zinc-600 dark:text-zinc-400;
   }
 
-  .post-content a,
-  .post-excerpt a {
+  .post-content a.post-mention,
+  .post-excerpt a.post-mention {
+    @apply break-all font-medium no-underline;
+    color: var(--post-mention-color, #0369a1);
+  }
+
+  .dark .post-content a.post-mention,
+  .dark .post-excerpt a.post-mention {
+    color: var(--post-mention-color, #38bdf8);
+  }
+
+  .post-content a.post-mention:hover,
+  .post-excerpt a.post-mention:hover {
+    opacity: 0.85;
+  }
+
+  .post-content a.post-hashtag,
+  .post-excerpt a.post-hashtag {
+    @apply break-all font-medium no-underline;
+    color: var(--post-hashtag-color, #6d28d9);
+  }
+
+  .dark .post-content a.post-hashtag,
+  .dark .post-excerpt a.post-hashtag {
+    color: var(--post-hashtag-color, #a78bfa);
+  }
+
+  .post-content a.post-hashtag:hover,
+  .post-excerpt a.post-hashtag:hover {
+    opacity: 0.85;
+  }
+
+  .post-content a.post-url,
+  .post-excerpt a.post-url,
+  .post-content a:not(.post-mention):not(.post-hashtag),
+  .post-excerpt a:not(.post-mention):not(.post-hashtag) {
     @apply break-all text-emerald-700 underline dark:text-emerald-400;
   }
 
@@ -106,5 +140,11 @@ body {
 
   .post-content em {
     @apply italic;
+  }
+
+  .post-content img.post-image,
+  .post-excerpt img.post-image,
+  .tiptap-editor img.post-image {
+    @apply my-3 h-auto max-w-full rounded-md;
   }
 }

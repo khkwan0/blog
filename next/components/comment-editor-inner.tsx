@@ -1,11 +1,19 @@
 "use client";
 
 import { EditorContent, useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
+import type { Editor } from "@tiptap/react";
+import { EditorImageButton } from "@/components/editor-image-button";
 import { COMMENT_SECTION } from "@/lib/api-section";
+import { createEditorExtensions } from "@/lib/editor-extensions";
+import {
+  handleEditorImageFile,
+  imageFileFromClipboard,
+  imageFilesFromDrop,
+} from "@/lib/editor-image-upload";
+import { isEmptyEditorHtml } from "@/lib/is-empty-editor-html";
 
 type ToolbarButtonProps = {
   active?: boolean;
@@ -56,13 +64,42 @@ export function CommentEditorInner({
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const editorRef = useRef<Editor | null>(null);
 
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: createEditorExtensions(),
     immediatelyRender: false,
+    onCreate: ({ editor: created }) => {
+      editorRef.current = created;
+    },
+    onDestroy: () => {
+      editorRef.current = null;
+    },
     editorProps: {
       attributes: {
         class: "tiptap-editor min-h-[8rem] px-3 py-2 focus:outline-none",
+      },
+      handlePaste: (_view, event) => {
+        const file = imageFileFromClipboard(event.clipboardData);
+        const activeEditor = editorRef.current;
+        if (!file || !activeEditor) {
+          return false;
+        }
+
+        event.preventDefault();
+        void handleEditorImageFile(activeEditor, file, setError);
+        return true;
+      },
+      handleDrop: (_view, event) => {
+        const files = imageFilesFromDrop(event.dataTransfer);
+        const activeEditor = editorRef.current;
+        if (files.length === 0 || !activeEditor) {
+          return false;
+        }
+
+        event.preventDefault();
+        void handleEditorImageFile(activeEditor, files[0], setError);
+        return true;
       },
     },
   });
@@ -74,7 +111,7 @@ export function CommentEditorInner({
     }
 
     const content = editor.getHTML();
-    const isEmpty = !editor.getText().trim() || content === "<p></p>";
+    const isEmpty = isEmptyEditorHtml(content, editor.getText());
 
     if (isEmpty) {
       setError("Add a comment before posting.");
@@ -156,6 +193,11 @@ export function CommentEditorInner({
                 onClick={() =>
                   editor?.chain().focus().toggleBlockquote().run()
                 }
+              />
+              <EditorImageButton
+                editor={editor}
+                disabled={loading}
+                onError={setError}
               />
             </div>
             <EditorContent editor={editor} />

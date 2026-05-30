@@ -1,9 +1,17 @@
 "use client";
 
 import { EditorContent, useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
+import type { Editor } from "@tiptap/react";
+import { EditorImageButton } from "@/components/editor-image-button";
+import { createEditorExtensions } from "@/lib/editor-extensions";
+import {
+  handleEditorImageFile,
+  imageFileFromClipboard,
+  imageFilesFromDrop,
+} from "@/lib/editor-image-upload";
+import { isEmptyEditorHtml } from "@/lib/is-empty-editor-html";
 
 type ToolbarButtonProps = {
   active?: boolean;
@@ -38,16 +46,44 @@ function ToolbarButton({
 
 export function PostEditorInner() {
   const router = useRouter();
-  const [title, setTitle] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const editorRef = useRef<Editor | null>(null);
 
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: createEditorExtensions(),
     immediatelyRender: false,
+    onCreate: ({ editor: created }) => {
+      editorRef.current = created;
+    },
+    onDestroy: () => {
+      editorRef.current = null;
+    },
     editorProps: {
       attributes: {
         class: "tiptap-editor min-h-[12rem] px-3 py-2 focus:outline-none",
+      },
+      handlePaste: (_view, event) => {
+        const file = imageFileFromClipboard(event.clipboardData);
+        const activeEditor = editorRef.current;
+        if (!file || !activeEditor) {
+          return false;
+        }
+
+        event.preventDefault();
+        void handleEditorImageFile(activeEditor, file, setError);
+        return true;
+      },
+      handleDrop: (_view, event) => {
+        const files = imageFilesFromDrop(event.dataTransfer);
+        const activeEditor = editorRef.current;
+        if (files.length === 0 || !activeEditor) {
+          return false;
+        }
+
+        event.preventDefault();
+        void handleEditorImageFile(activeEditor, files[0], setError);
+        return true;
       },
     },
   });
@@ -59,7 +95,7 @@ export function PostEditorInner() {
     }
 
     const content = editor.getHTML();
-    const isEmpty = !editor.getText().trim() || content === "<p></p>";
+    const isEmpty = isEmptyEditorHtml(content, editor.getText());
 
     if (isEmpty) {
       setError("Add some content before publishing.");
@@ -73,7 +109,6 @@ export function PostEditorInner() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title: title.trim() || undefined,
         content,
         status: "PUBLISHED",
       }),
@@ -89,34 +124,14 @@ export function PostEditorInner() {
       return;
     }
 
-    setTitle("");
     editor.commands.clearContent();
     router.refresh();
   };
 
   return (
     <section className="mb-10 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-      <h2 className="text-lg font-semibold tracking-tight">New post</h2>
-      <p className="mt-1 text-sm text-muted">
-        Write and publish directly from the home page.
-      </p>
-
-      <form onSubmit={onSubmit} className="mt-6 space-y-4">
-        <label className="block">
-          <span className="mb-1 block text-sm font-medium">
-            Title <span className="text-muted">(optional)</span>
-          </span>
-          <input
-            type="text"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            className="field-input"
-            placeholder="Post title"
-          />
-        </label>
-
+      <form onSubmit={onSubmit} className="space-y-4">
         <div>
-          <span className="mb-1 block text-sm font-medium">Content</span>
           <div className="overflow-hidden rounded-md border border-zinc-300 dark:border-zinc-600">
             <div className="flex flex-wrap gap-1 border-b border-zinc-200 bg-zinc-50 px-2 py-1.5 dark:border-zinc-700 dark:bg-zinc-950">
               <ToolbarButton
@@ -162,6 +177,11 @@ export function PostEditorInner() {
                 onClick={() =>
                   editor?.chain().focus().toggleBlockquote().run()
                 }
+              />
+              <EditorImageButton
+                editor={editor}
+                disabled={loading}
+                onError={setError}
               />
             </div>
             <EditorContent editor={editor} />

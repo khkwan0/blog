@@ -1,3 +1,6 @@
+import { HASHTAG_PATTERN } from "@/lib/extract-hashtags";
+import { MENTION_PATTERN } from "@/lib/extract-mentions";
+
 const URL_PATTERN = /https?:\/\/[^\s<>"']+/g;
 
 export function escapeHtml(value: string): string {
@@ -31,28 +34,62 @@ function normalizeAnchorTag(attrs: string): string {
   return next;
 }
 
-function linkifyTextSegment(text: string): string {
-  return text.replace(URL_PATTERN, (rawUrl) => {
-    const url = rawUrl.replace(/[.,;:!?)]+$/, "");
-    const trailing = rawUrl.slice(url.length);
-    return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a>${escapeHtml(trailing)}`;
+function linkifyMentions(text: string): string {
+  return text.replace(MENTION_PATTERN, (match, raw) => {
+    const username = raw.trim().toLowerCase();
+    if (!username) {
+      return match;
+    }
+
+    const href = `/user/${encodeURIComponent(username)}`;
+    return `<a href="${escapeHtml(href)}" class="post-mention">${escapeHtml(match)}</a>`;
   });
 }
 
-/** Makes plain URLs clickable and opens all links in a new tab. */
+function linkifyHashTags(text: string): string {
+  return text.replace(HASHTAG_PATTERN, (match, raw) => {
+    const hashtag = raw.trim().toLowerCase();
+    if (!hashtag) {
+      return match;
+    }
+
+    const href = `/tag/${encodeURIComponent(hashtag)}`;
+    return `<a href="${escapeHtml(href)}" class="post-hashtag">${escapeHtml(match)}</a>`;
+  });
+}
+
+function linkifyUrls(text: string): string {
+  return text.replace(URL_PATTERN, (rawUrl) => {
+    const url = rawUrl.replace(/[.,;:!?)]+$/, "");
+    const trailing = rawUrl.slice(url.length);
+    return `<a href="${escapeHtml(url)}" class="post-url" target="_blank" rel="noopener noreferrer">${escapeHtml(url)}</a>${escapeHtml(trailing)}`;
+  });
+}
+
+function linkifyTextSegment(text: string): string {
+  return linkifyUrls(linkifyHashTags(linkifyMentions(text)));
+}
+
+/** Makes mentions, hashtags, and plain URLs clickable in HTML text nodes. */
 export function prepareHtmlLinks(html: string): string {
-  const withPlainUrls = html.replace(
+  const withSocial = html.replace(
     />([^<]+)</g,
     (_, text: string) => `>${linkifyTextSegment(text)}<`,
   );
 
-  return withPlainUrls.replace(
+  return withSocial.replace(
     /<a(\s[^>]*?)>/gi,
-    (_, attrs: string) => `<a ${normalizeAnchorTag(attrs)}>`,
+    (_, attrs: string) => {
+      if (/\bclass\s*=\s*["'][^"']*(?:post-mention|post-hashtag)/i.test(attrs)) {
+        return `<a ${attrs.trim()}>`;
+      }
+
+      return `<a ${normalizeAnchorTag(attrs)}>`;
+    },
   );
 }
 
-/** Linkifies plain-text URLs (e.g. excerpts) and opens them in a new tab. */
+/** Linkifies mentions, hashtags, and URLs in plain text (e.g. excerpts). */
 export function preparePlainTextLinks(text: string): string {
   return linkifyTextSegment(escapeHtml(text));
 }

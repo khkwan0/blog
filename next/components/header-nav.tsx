@@ -2,14 +2,21 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { UserAvatar } from "@/components/user-avatar";
 import { authClient } from "@/lib/auth-client";
+import { displayUsername } from "@/lib/format-username";
 
 type HeaderNavProps = {
   isSignedIn: boolean;
   username: string | null;
+  avatarImage?: string | null;
 };
 
-export function HeaderNav({ isSignedIn, username }: HeaderNavProps) {
+export function HeaderNav({
+  isSignedIn,
+  username,
+  avatarImage,
+}: HeaderNavProps) {
   const router = useRouter();
 
   const onSignOut = async () => {
@@ -33,9 +40,18 @@ export function HeaderNav({ isSignedIn, username }: HeaderNavProps) {
 
   return (
     <nav className="flex items-center gap-3 text-sm">
-      <span className="text-muted">
-        Signed in as {username ?? "…"}
-      </span>
+      <Link
+        href="/settings"
+        className="flex items-center gap-2 text-muted hover:text-foreground"
+        title="Account settings"
+      >
+        <UserAvatar
+          name={username ?? "?"}
+          image={avatarImage}
+          size="sm"
+        />
+        <span>{username ? displayUsername(username) : "…"}</span>
+      </Link>
       <button
         type="button"
         onClick={onSignOut}

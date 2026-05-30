@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { DevBuildBanner } from "@/components/dev-build-banner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { UserContentColorVars } from "@/components/user-content-color-vars";
 import { isDevBuild } from "@/lib/env";
 import "./globals.css";
 
@@ -40,6 +41,7 @@ export default function RootLayout({
         />
       </head>
       <body className="flex min-h-full flex-col">
+        <UserContentColorVars />
         <ThemeProvider>
           <DevBuildBanner />
           <div

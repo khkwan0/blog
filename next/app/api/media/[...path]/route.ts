@@ -2,17 +2,20 @@ import { createReadStream } from "fs";
 import { stat } from "fs/promises";
 import path from "path";
 import { Readable } from "stream";
-import { prisma } from "@/lib/prisma";
 import { isPostPubliclyVisible } from "@/lib/posts";
+import { getPostStatus } from "@/lib/read/posts";
 import { resolveMediaPath } from "@/lib/video-storage";
 
 export const dynamic = "force-dynamic";
+
+import { EXT_TO_MIME } from "@/lib/image-formats";
 
 const CONTENT_TYPES: Record<string, string> = {
   ".mp4": "video/mp4",
   ".webm": "video/webm",
   ".mkv": "video/x-matroska",
   ".m4v": "video/x-m4v",
+  ...EXT_TO_MIME,
 };
 
 export async function GET(
@@ -22,19 +25,22 @@ export async function GET(
   const { path: segments } = await context.params;
   const relativePath = segments.join("/");
 
-  if (!relativePath.startsWith("posts/")) {
+  const isPostMedia = relativePath.startsWith("posts/");
+  const isAvatarMedia = relativePath.startsWith("avatars/");
+  const isContentImage = relativePath.startsWith("images/");
+
+  if (!isPostMedia && !isAvatarMedia && !isContentImage) {
     return new Response("Not found", { status: 404 });
   }
 
-  const postId = segments[1];
-  if (postId) {
-    const post = await prisma.blogEntry.findUnique({
-      where: { id: postId },
-      select: { status: true },
-    });
+  if (isPostMedia) {
+    const postId = segments[1];
+    if (postId) {
+      const post = await getPostStatus(postId);
 
-    if (!post || !isPostPubliclyVisible(post.status)) {
-      return new Response("Not found", { status: 404 });
+      if (!post || !isPostPubliclyVisible(post.status)) {
+        return new Response("Not found", { status: 404 });
+      }
     }
   }
 

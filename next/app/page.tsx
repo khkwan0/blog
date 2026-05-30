@@ -4,11 +4,18 @@ import { PostActions } from "@/components/post-actions";
 import { PostDeleteButton } from "@/components/post-delete-button";
 import { PostBlocks } from "@/components/post-blocks";
 import { HeaderNav } from "@/components/header-nav";
+import { FollowingStrip } from "@/components/following-strip";
 import { PostEditor } from "@/components/post-editor";
+import { UserProfileLink } from "@/components/user-profile-link";
 import { auth } from "@/lib/auth";
+import { getFeedPosts, getLikedPostIds } from "@/lib/read/posts";
+import {
+  followCounts,
+  followedUserIds,
+  listFollowing,
+} from "@/lib/read/social-graph";
+import { formatPostTimestamp } from "@/lib/format-datetime";
 import { preparePlainTextLinks } from "@/lib/link-html";
-import { publicPostWhere } from "@/lib/posts";
-import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +25,7 @@ type HomePost = {
   slug: string;
   excerpt: string | null;
   totalLikes: number;
+  commentCount: number;
   createdAt: Date;
   owner: { name: string };
   ownerId: string;
@@ -30,59 +38,37 @@ type HomePost = {
   }[];
 };
 
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-  }).format(date);
-}
-
 export default async function Home() {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
-  const posts = await prisma.blogEntry.findMany({
-    where: publicPostWhere,
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      excerpt: true,
-      totalLikes: true,
-      createdAt: true,
-      owner: {
-        select: {
-          name: true,
-        },
-      },
-      ownerId: true,
-      blocks: {
-        orderBy: { sortOrder: "asc" },
-        select: {
-          id: true,
-          format: true,
-          content: true,
-          sortOrder: true,
-        },
-      },
-    },
-  });
+  const followingRows = session
+    ? await listFollowing(session.user.id)
+    : [];
+  const followingUsers = followingRows.map((row) => row.following);
+  const myCounts = session ? await followCounts(session.user.id) : null;
 
-  const likedPostIds = new Set<string>();
-  if (session && posts.length > 0) {
-    const likes = await prisma.blogEntryLike.findMany({
-      where: {
-        userId: session.user.id,
-        blogEntryId: { in: posts.map((post) => post.id) },
-      },
-      select: { blogEntryId: true },
-    });
+  const feedOwnerIds = session
+    ? [...new Set([session.user.id, ...followingUsers.map((user) => user.id)])]
+    : [];
 
-    for (const like of likes) {
-      likedPostIds.add(like.blogEntryId);
-    }
-  }
+  const posts =
+    session && feedOwnerIds.length > 0
+      ? await getFeedPosts(feedOwnerIds)
+      : [];
+
+  const likedPostIds = session
+    ? await getLikedPostIds(
+        session.user.id,
+        posts.map((post) => post.id),
+      )
+    : new Set<string>();
+
+  const ownerIds = [...new Set(posts.map((post) => post.ownerId))];
+  const followedOwners = session
+    ? await followedUserIds(session.user.id, ownerIds)
+    : new Set<string>();
 
   const homePosts: HomePost[] = posts.map((post) => ({
     id: post.id,
@@ -90,6 +76,7 @@ export default async function Home() {
     slug: post.slug,
     excerpt: post.excerpt,
     totalLikes: post.totalLikes,
+    commentCount: post._count.comments,
     createdAt: post.createdAt,
     owner: post.owner,
     ownerId: post.ownerId,
@@ -100,7 +87,7 @@ export default async function Home() {
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
       <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-6 py-4 pr-36">
+        <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-4 pr-36">
           <Link
             href="/"
             className="text-xl font-semibold tracking-tight hover:text-accent"
@@ -110,19 +97,34 @@ export default async function Home() {
           <HeaderNav
             isSignedIn={Boolean(session)}
             username={session?.user.name ?? null}
+            avatarImage={session?.user.image}
           />
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
-        {session ? <PostEditor /> : null}
+      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
+        {session && myCounts ? (
+          <div className="flex items-start gap-8">
+            <div className="w-36 shrink-0">
+              <FollowingStrip
+                profileUsername={session.user.name}
+                followerCount={myCounts.followerCount}
+                followingCount={myCounts.followingCount}
+                users={followingUsers}
+              />
+            </div>
 
-        <h2 className="text-2xl font-semibold tracking-tight">Posts</h2>
+            <div className="min-w-0 flex-1">
+              <PostEditor />
 
-        {homePosts.length === 0 ? (
-          <p className="mt-6 text-muted">No published posts yet.</p>
-        ) : (
-          <ul className="mt-6 space-y-6">
+              {homePosts.length === 0 ? (
+                <p className="mt-6 text-muted">
+                  No posts from you or people you follow yet.
+                </p>
+              ) : null}
+
+              {homePosts.length > 0 ? (
+                <ul className="mt-6 space-y-6">
             {homePosts.map((post) => (
               <li
                 key={post.id}
@@ -143,9 +145,16 @@ export default async function Home() {
                     {post.title ? (
                       <h3 className="text-lg font-semibold">{post.title}</h3>
                     ) : null}
-                    <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                      {formatDate(post.createdAt)}
-                      {` · ${post.owner.name}`}
+                    <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
+                      <span>{formatPostTimestamp(post.createdAt)}</span>
+                      <span aria-hidden>·</span>
+                      <UserProfileLink
+                        username={post.owner.name}
+                        userId={post.ownerId}
+                        isSignedIn={Boolean(session)}
+                        viewerId={session?.user.id}
+                        initialFollowing={followedOwners.has(post.ownerId)}
+                      />
                     </p>
                     {post.excerpt ? (
                       <p
@@ -166,6 +175,7 @@ export default async function Home() {
                   <PostActions
                     postId={post.id}
                     postTitle={post.title}
+                    commentCount={post.commentCount}
                     totalLikes={post.totalLikes}
                     likedByUser={post.likedByUser}
                     isSignedIn={Boolean(session)}
@@ -173,7 +183,12 @@ export default async function Home() {
                 </article>
               </li>
             ))}
-          </ul>
+                </ul>
+              ) : null}
+            </div>
+          </div>
+        ) : (
+          <p className="text-muted">Sign in to see posts from people you follow.</p>
         )}
       </main>
     </div>

@@ -1,9 +1,9 @@
-import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { DELETE_SECTION, isDeleteSection } from "@/lib/api-section";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getApiSession } from "@/lib/api-session";
+import { getPostForArchive } from "@/lib/read/posts";
+import { archivePost } from "@/lib/write/posts";
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +16,7 @@ type DeletePostBody = {
 };
 
 export async function POST(request: Request, context: RouteContext) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getApiSession();
 
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -35,10 +33,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   const { blogId } = await context.params;
 
-  const post = await prisma.blogEntry.findUnique({
-    where: { id: blogId },
-    select: { id: true, ownerId: true, status: true },
-  });
+  const post = await getPostForArchive(blogId);
 
   if (!post || post.status === "ARCHIVED") {
     return NextResponse.json({ error: "Post not found" }, { status: 404 });
@@ -48,10 +43,7 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  await prisma.blogEntry.update({
-    where: { id: blogId },
-    data: { status: "ARCHIVED" },
-  });
+  await archivePost(blogId);
 
   revalidatePath("/");
   revalidatePath(`/blog/${blogId}`);

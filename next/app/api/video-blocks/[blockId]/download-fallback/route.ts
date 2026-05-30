@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
+import { getVideoBlockForDownload } from "@/lib/read/video-blocks";
+import { updateVideoBlockContent } from "@/lib/write/video-blocks";
 import { downloadVideo, isYtDlpAvailable } from "@/lib/video-download";
 import type { VideoBlockContent } from "@/lib/video-types";
 import { parseVideoUrl } from "@/lib/video-url";
-import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
@@ -24,20 +25,7 @@ export async function POST(_request: Request, context: RouteContext) {
 
   const { blockId } = await context.params;
 
-  const block = await prisma.blogEntryBlock.findUnique({
-    where: { id: blockId },
-    select: {
-      id: true,
-      format: true,
-      content: true,
-      blogEntry: {
-        select: {
-          id: true,
-          status: true,
-        },
-      },
-    },
-  });
+  const block = await getVideoBlockForDownload(blockId);
 
   if (
     !block ||
@@ -70,15 +58,13 @@ export async function POST(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Invalid video URL" }, { status: 400 });
   }
 
-  await prisma.blogEntryBlock.update({
-    where: { id: blockId },
-    data: {
-      content: JSON.stringify({
-        ...video,
-        status: "pending",
-      } satisfies VideoBlockContent),
-    },
-  });
+  await updateVideoBlockContent(
+    blockId,
+    JSON.stringify({
+      ...video,
+      status: "pending",
+    } satisfies VideoBlockContent),
+  );
 
   try {
     const localPath = await downloadVideo(parsed, block.blogEntry.id);
@@ -88,10 +74,7 @@ export async function POST(_request: Request, context: RouteContext) {
       localPath,
     };
 
-    await prisma.blogEntryBlock.update({
-      where: { id: blockId },
-      data: { content: JSON.stringify(ready) },
-    });
+    await updateVideoBlockContent(blockId, JSON.stringify(ready));
 
     return NextResponse.json({ status: "ready", localPath });
   } catch (error) {
@@ -102,10 +85,7 @@ export async function POST(_request: Request, context: RouteContext) {
         error instanceof Error ? error.message : "Video download failed",
     };
 
-    await prisma.blogEntryBlock.update({
-      where: { id: blockId },
-      data: { content: JSON.stringify(failed) },
-    });
+    await updateVideoBlockContent(blockId, JSON.stringify(failed));
 
     return NextResponse.json(
       { error: failed.error, status: "failed" },

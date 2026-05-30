@@ -5,7 +5,7 @@ export type ParsedHashTag = {
   display: string;
 };
 
-const HASHTAG_PATTERN = /#([\p{L}\p{N}_]+)/gu;
+export const HASHTAG_PATTERN = /#([\p{L}\p{N}_]+)/gu;
 
 function addHashTag(
   tags: Map<string, ParsedHashTag>,
@@ -30,6 +30,7 @@ export function extractHashTags(...texts: (string | null | undefined)[]): Parsed
       continue;
     }
 
+    HASHTAG_PATTERN.lastIndex = 0;
     for (const match of text.matchAll(HASHTAG_PATTERN)) {
       addHashTag(tags, match[1]!);
     }

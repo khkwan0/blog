@@ -62,7 +62,7 @@ services:
     environment:
       - APP_ENV=production
       - RUN_PRISMA_BOOTSTRAP=1
-      - BETTER_AUTH_URL=https://blog.kkith.com
+      - BETTER_AUTH_URL=https://shitsue.com
       - MEDIA_STORAGE_PATH=/data/media
       - YTDLP_COOKIES_PATH=/data/youtube-cookies.txt
       - ENABLE_VIDEO_DOWNLOAD=true

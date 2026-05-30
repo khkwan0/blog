@@ -8,10 +8,15 @@ import { PostDeleteButton } from "@/components/post-delete-button";
 import { PostBlocks } from "@/components/post-blocks";
 import { PostHtmlContent } from "@/components/post-html-content";
 import { HeaderNav } from "@/components/header-nav";
+import { UserProfileLink } from "@/components/user-profile-link";
 import { auth } from "@/lib/auth";
-import { fetchCommentsForPost, likedCommentIds } from "@/lib/comments";
-import { publicPostWhere } from "@/lib/posts";
-import { prisma } from "@/lib/prisma";
+import { fetchCommentsForPost, likedCommentIds } from "@/lib/read/comments";
+import {
+  getPublishedPostForPage,
+  getPublishedPostMetadata,
+} from "@/lib/read/posts";
+import { followedUserIds } from "@/lib/read/social-graph";
+import { formatPostTimestamp } from "@/lib/format-datetime";
 
 export const dynamic = "force-dynamic";
 
@@ -19,18 +24,9 @@ type PageProps = {
   params: Promise<{ blogId: string }>;
 };
 
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-  }).format(date);
-}
-
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { blogId } = await params;
-  const post = await prisma.blogEntry.findFirst({
-    where: { id: blogId, ...publicPostWhere },
-    select: { title: true, excerpt: true },
-  });
+  const post = await getPublishedPostMetadata(blogId);
 
   if (!post) {
     return { title: "Post not found" };
@@ -49,31 +45,7 @@ export default async function BlogPostPage({ params }: PageProps) {
     headers: await headers(),
   });
 
-  const post = await prisma.blogEntry.findFirst({
-    where: { id: blogId, ...publicPostWhere },
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      excerpt: true,
-      createdAt: true,
-      owner: {
-        select: {
-          name: true,
-        },
-      },
-      ownerId: true,
-      blocks: {
-        orderBy: { sortOrder: "asc" },
-        select: {
-          id: true,
-          format: true,
-          content: true,
-          sortOrder: true,
-        },
-      },
-    },
-  });
+  const post = await getPublishedPostForPage(blogId);
 
   if (!post) {
     notFound();
@@ -87,6 +59,14 @@ export default async function BlogPostPage({ params }: PageProps) {
       )
     : new Set<string>();
 
+  const commentAuthorIds = [...new Set(comments.map((comment) => comment.user.id))];
+  const followedAuthors = session
+    ? await followedUserIds(session.user.id, [
+        post.ownerId,
+        ...commentAuthorIds,
+      ])
+    : new Set<string>();
+
   const commentItems = comments.map((comment) => ({
     id: comment.id,
     content: comment.content,
@@ -94,7 +74,13 @@ export default async function BlogPostPage({ params }: PageProps) {
     totalLikes: comment.totalLikes,
     likedByUser: likedIds.has(comment.id),
     user: comment.user,
+    followedByViewer: followedAuthors.has(comment.user.id),
   }));
+
+  const followsPostOwner =
+    session && session.user.id !== post.ownerId
+      ? followedAuthors.has(post.ownerId)
+      : false;
 
   const htmlContent = post.blocks
     .filter((block) => block.format === "HTML")
@@ -116,6 +102,7 @@ export default async function BlogPostPage({ params }: PageProps) {
           <HeaderNav
             isSignedIn={Boolean(session)}
             username={session?.user.name ?? null}
+            avatarImage={session?.user.image}
           />
         </div>
       </header>
@@ -135,9 +122,16 @@ export default async function BlogPostPage({ params }: PageProps) {
           {post.title ? (
             <h1 className="text-2xl font-semibold tracking-tight">{post.title}</h1>
           ) : null}
-          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-            {formatDate(post.createdAt)}
-            {` · ${post.owner.name}`}
+          <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
+            <span>{formatPostTimestamp(post.createdAt)}</span>
+            <span aria-hidden>·</span>
+            <UserProfileLink
+              username={post.owner.name}
+              userId={post.ownerId}
+              isSignedIn={Boolean(session)}
+              viewerId={session?.user.id}
+              initialFollowing={followsPostOwner}
+            />
           </p>
           <PostHtmlContent html={htmlContent} className="post-content mt-4" />
           {videoBlocks.length > 0 ? (
@@ -150,6 +144,7 @@ export default async function BlogPostPage({ params }: PageProps) {
           blogId={post.id}
           comments={commentItems}
           isSignedIn={Boolean(session)}
+          viewerId={session?.user.id}
         />
       </main>
     </div>

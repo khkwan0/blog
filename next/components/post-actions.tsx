@@ -7,6 +7,7 @@ import { useState } from "react";
 type PostActionsProps = {
   postId: string;
   postTitle?: string | null;
+  commentCount: number;
   totalLikes: number;
   likedByUser: boolean;
   isSignedIn: boolean;
@@ -75,6 +76,7 @@ const actionClass =
 export function PostActions({
   postId,
   postTitle,
+  commentCount,
   totalLikes: initialTotalLikes,
   likedByUser: initialLiked,
   isSignedIn,
@@ -141,11 +143,12 @@ export function PostActions({
     <div className="relative z-10 mt-4 flex items-center gap-1 border-t border-zinc-200 pt-3 dark:border-zinc-800">
       <Link
         href={`/blog/${postId}`}
-        className={actionClass}
-        aria-label="View post"
+        className={`${actionClass} flex items-center gap-1.5`}
+        aria-label={`View post (${commentCount} comments)`}
         title="View post"
       >
         <ChatIcon />
+        <span className="text-sm tabular-nums">{commentCount}</span>
       </Link>
 
       <button

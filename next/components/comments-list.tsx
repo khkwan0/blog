@@ -1,4 +1,6 @@
 import { CommentActions } from "@/components/comment-actions";
+import { UserProfileLink } from "@/components/user-profile-link";
+import { formatPostTimestamp } from "@/lib/format-datetime";
 import { prepareHtmlLinks } from "@/lib/link-html";
 
 export type CommentListItem = {
@@ -7,28 +9,24 @@ export type CommentListItem = {
   createdAt: Date;
   totalLikes: number;
   likedByUser: boolean;
-  user: { name: string };
+  user: { id: string; name: string };
+  followedByViewer?: boolean;
 };
 
 type CommentsListProps = {
   blogId: string;
   comments: CommentListItem[];
   isSignedIn: boolean;
+  viewerId?: string | null;
   heading?: string;
   emptyMessage?: string;
 };
-
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
 
 export function CommentsList({
   blogId,
   comments,
   isSignedIn,
+  viewerId,
   heading = "Comments",
   emptyMessage,
 }: CommentsListProps) {
@@ -49,9 +47,16 @@ export function CommentsList({
             key={comment.id}
             className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
           >
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              {comment.user.name}
-              {` · ${formatDate(comment.createdAt)}`}
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
+              <UserProfileLink
+                username={comment.user.name}
+                userId={comment.user.id}
+                isSignedIn={isSignedIn}
+                viewerId={viewerId}
+                initialFollowing={comment.followedByViewer ?? false}
+              />
+              <span aria-hidden>·</span>
+              <span>{formatPostTimestamp(comment.createdAt)}</span>
             </p>
             <div
               className="post-content mt-2"

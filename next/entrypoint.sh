@@ -3,7 +3,7 @@ set -e
 
 # Ensure host-persisted media directory exists (bind-mounted at /data/media in Docker).
 if [ -n "$MEDIA_STORAGE_PATH" ]; then
-  mkdir -p "$MEDIA_STORAGE_PATH/posts"
+  mkdir -p "$MEDIA_STORAGE_PATH/posts" "$MEDIA_STORAGE_PATH/avatars"
 fi
 
 # Run Prisma bootstrap in development by default, or when explicitly enabled.

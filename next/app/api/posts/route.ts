@@ -1,10 +1,11 @@
-import { headers } from "next/headers";
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { processPostHashTags } from "@/lib/process-post-hashtags";
-import { processPostVideos } from "@/lib/process-post-videos";
-import { prisma } from "@/lib/prisma";
-import { uniqueSlug } from "@/lib/slug";
+import { getApiSession } from "@/lib/api-session";
+import { isEmptyEditorHtml } from "@/lib/is-empty-editor-html";
+import {
+  createPost,
+  excerptFromHtml,
+  resolveUniqueSlug,
+} from "@/lib/write/posts";
 
 export const dynamic = "force-dynamic";
 
@@ -14,23 +15,8 @@ type CreatePostBody = {
   status?: "DRAFT" | "PUBLISHED";
 };
 
-function excerptFromHtml(html: string) {
-  const text = html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  if (!text) {
-    return null;
-  }
-
-  return text.length > 240 ? `${text.slice(0, 237)}...` : text;
-}
-
 export async function POST(request: Request) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getApiSession();
 
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -41,65 +27,21 @@ export async function POST(request: Request) {
   const content = body.content?.trim();
   const wantsPublish = body.status !== "DRAFT";
 
-  if (!content || content === "<p></p>") {
+  const plainText = content?.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() ?? "";
+  if (!content || isEmptyEditorHtml(content, plainText)) {
     return NextResponse.json({ error: "Content is required." }, { status: 400 });
   }
 
   const slugSource = title ?? excerptFromHtml(content) ?? "post";
-  const slug = await uniqueSlug(slugSource, async (candidate) => {
-    const existing = await prisma.blogEntry.findUnique({
-      where: { slug: candidate },
-      select: { id: true },
-    });
-    return existing !== null;
+  const slug = await resolveUniqueSlug(slugSource);
+
+  const post = await createPost({
+    ownerId: session.user.id,
+    title,
+    content,
+    slug,
+    publish: wantsPublish,
   });
 
-  const post = await prisma.blogEntry.create({
-    data: {
-      ...(title !== null ? { title } : {}),
-      slug,
-      excerpt: excerptFromHtml(content),
-      status: "DRAFT",
-      publishedAt: null,
-      owner: { connect: { id: session.user.id } },
-      blocks: {
-        create: {
-          format: "HTML",
-          content,
-          sortOrder: 0,
-        },
-      },
-    },
-    select: {
-      id: true,
-      slug: true,
-      title: true,
-    },
-  });
-
-  let media = null;
-  let hashtags = null;
-
-  if (wantsPublish) {
-    media = await processPostVideos(post.id);
-    hashtags = await processPostHashTags(post.id);
-
-    await prisma.blogEntry.update({
-      where: { id: post.id },
-      data: {
-        status: "PUBLISHED",
-        publishedAt: new Date(),
-      },
-    });
-  }
-
-  return NextResponse.json(
-    {
-      ...post,
-      status: wantsPublish ? "PUBLISHED" : "DRAFT",
-      media,
-      hashtags,
-    },
-    { status: 201 },
-  );
+  return NextResponse.json(post, { status: 201 });
 }

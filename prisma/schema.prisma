@@ -17,6 +17,8 @@ model User {
   phoneNumber         String?     @unique
   phoneNumberVerified Boolean     @default(false)
   image         String?
+  mentionColor  String?
+  hashtagColor  String?
   role          Int         @default(0)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @default(now()) @updatedAt
@@ -26,6 +28,23 @@ model User {
   commentLikes  CommentLike[]
   sessions      Session[]
   accounts      Account[]
+  following     SocialGraph[] @relation("UserFollowing")
+  followers     SocialGraph[] @relation("UserFollowers")
+  mentions      BlogEntryMention[]
+}
+
+model SocialGraph {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  follower    User     @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("SocialGraph")
 }
 
 model Session {
@@ -98,6 +117,7 @@ model BlogEntry {
   owner       User             @relation(fields: [ownerId], references: [id], onDelete: Restrict)
   blocks      BlogEntryBlock[]
   hashTags    HashTag[]
+  mentions    BlogEntryMention[]
   likes       BlogEntryLike[]
   comments    Comment[]
   totalLikes  Int              @default(1)
@@ -130,6 +150,23 @@ model HashTag {
   @@unique([blogEntryId, hashtag])
   @@index([hashtag])
   @@map("HashTags")
+}
+
+model BlogEntryMention {
+  id          String    @id @default(cuid())
+  blogEntryId String
+  username    String
+  display     String
+  userId      String?
+  createdAt   DateTime  @default(now())
+  blogEntry   BlogEntry @relation(fields: [blogEntryId], references: [id], onDelete: Cascade)
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([blogEntryId, username])
+  @@index([blogEntryId])
+  @@index([username])
+  @@index([userId])
+  @@map("BlogEntryMentions")
 }
 
 model BlogEntryLike {

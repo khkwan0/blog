@@ -1,9 +1,12 @@
-import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { COMMENT_SECTION, isCommentSection } from "@/lib/api-section";
-import { auth } from "@/lib/auth";
-import { publicPostWhere } from "@/lib/posts";
-import { prisma } from "@/lib/prisma";
+import { getApiSession } from "@/lib/api-session";
+import {
+  getParentComment,
+  getPublishedPostIdForComment,
+} from "@/lib/read/comments";
+import { isEmptyEditorHtml } from "@/lib/is-empty-editor-html";
+import { createComment } from "@/lib/write/comments";
 
 export const dynamic = "force-dynamic";
 
@@ -19,13 +22,11 @@ type CreateCommentBody = {
 
 function isEmptyHtml(html: string): boolean {
   const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-  return !text || html === "<p></p>";
+  return isEmptyEditorHtml(html, text);
 }
 
 export async function POST(request: Request, context: RouteContext) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  const session = await getApiSession();
 
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -46,10 +47,7 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Content is required." }, { status: 400 });
   }
 
-  const post = await prisma.blogEntry.findFirst({
-    where: { id: blogId, ...publicPostWhere },
-    select: { id: true },
-  });
+  const post = await getPublishedPostIdForComment(blogId);
 
   if (!post) {
     return NextResponse.json({ error: "Post not found" }, { status: 404 });
@@ -58,34 +56,21 @@ export async function POST(request: Request, context: RouteContext) {
   const parentId = body.parentId?.trim() || null;
 
   if (parentId) {
-    const parent = await prisma.comment.findFirst({
-      where: { id: parentId, blogEntryId: blogId },
-      select: { id: true },
-    });
+    const parent = await getParentComment(blogId, parentId);
 
     if (!parent) {
-      return NextResponse.json({ error: "Parent comment not found." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Parent comment not found." },
+        { status: 404 },
+      );
     }
   }
 
-  const comment = await prisma.comment.create({
-    data: {
-      blogEntryId: blogId,
-      userId: session.user.id,
-      parentId,
-      content,
-    },
-    select: {
-      id: true,
-      parentId: true,
-      content: true,
-      createdAt: true,
-      user: {
-        select: {
-          name: true,
-        },
-      },
-    },
+  const comment = await createComment({
+    blogEntryId: blogId,
+    userId: session.user.id,
+    parentId,
+    content,
   });
 
   return NextResponse.json(comment, { status: 201 });
