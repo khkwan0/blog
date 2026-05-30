@@ -8,6 +8,7 @@ import {
   type ParsedVideoUrl,
 } from "@/lib/video-url";
 import { isYoutubeEmbeddable } from "@/lib/youtube-embed";
+import { resolveFacebookEmbedDimensions } from "@/lib/facebook-embed-meta";
 
 export type ProcessPostVideosResult = {
   linksFound: number;
@@ -87,6 +88,18 @@ async function markVideoEmbedded(blockId: string, content: VideoBlockContent) {
       } satisfies VideoBlockContent),
     },
   });
+}
+
+async function withFacebookEmbedDimensions(
+  content: VideoBlockContent,
+): Promise<VideoBlockContent> {
+  const dimensions = await resolveFacebookEmbedDimensions(content.sourceUrl);
+
+  return {
+    ...content,
+    embedWidth: dimensions.width,
+    embedHeight: dimensions.height,
+  };
 }
 
 async function tryDownloadVideo(
@@ -270,7 +283,11 @@ export async function processPostVideos(
     }
 
     if (isEmbedOnlyVideo(video)) {
-      await markVideoEmbedded(blockId, pendingContent);
+      const embeddedContent =
+        video.provider === "facebook"
+          ? await withFacebookEmbedDimensions(pendingContent)
+          : pendingContent;
+      await markVideoEmbedded(blockId, embeddedContent);
       continue;
     }
 

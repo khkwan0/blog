@@ -4,6 +4,7 @@ export type VideoProvider =
   | "tiktok"
   | "twitter"
   | "instagram"
+  | "facebook"
   | "twitch"
   | "kick"
   | "direct";
@@ -124,6 +125,58 @@ function parseTwitter(url: URL): ParsedVideoUrl | null {
     videoId: url.pathname,
     url: url.toString(),
   };
+}
+
+function parseFacebook(url: URL): ParsedVideoUrl | null {
+  const host = url.hostname.replace(/^(www\.|m\.|web\.|vm\.)/, "");
+
+  if (host === "fb.watch") {
+    const slug = url.pathname.slice(1).split("/")[0];
+    return slug
+      ? {
+          provider: "facebook",
+          videoId: slug,
+          url: url.toString(),
+        }
+      : null;
+  }
+
+  if (host !== "facebook.com" && host !== "fb.com") {
+    return null;
+  }
+
+  const reelMatch = url.pathname.match(/^\/reel\/(\d+)/);
+  if (reelMatch) {
+    const id = reelMatch[1]!;
+    return {
+      provider: "facebook",
+      videoId: id,
+      url: `https://www.facebook.com/reel/${id}`,
+    };
+  }
+
+  if (url.pathname === "/watch" || url.pathname === "/watch/") {
+    const id = url.searchParams.get("v");
+    return id
+      ? {
+          provider: "facebook",
+          videoId: id,
+          url: `https://www.facebook.com/watch/?v=${id}`,
+        }
+      : null;
+  }
+
+  const videoMatch = url.pathname.match(/^\/[^/]+\/videos\/(\d+)/);
+  if (videoMatch) {
+    const id = videoMatch[1]!;
+    return {
+      provider: "facebook",
+      videoId: id,
+      url: `https://www.facebook.com${url.pathname}`,
+    };
+  }
+
+  return null;
 }
 
 function parseInstagram(url: URL): ParsedVideoUrl | null {
@@ -263,7 +316,8 @@ export function parseVideoUrl(rawUrl: string): ParsedVideoUrl | null {
       parseDirectMedia(url) ??
       parseTiktok(url) ??
       parseTwitter(url) ??
-      parseInstagram(url)
+      parseInstagram(url) ??
+      parseFacebook(url)
     );
   } catch {
     return null;
@@ -292,6 +346,7 @@ export function isEmbedOnlyVideo(video: ParsedVideoUrl): boolean {
     video.provider === "direct" ||
     video.provider === "twitch" ||
     video.provider === "kick" ||
+    video.provider === "facebook" ||
     video.isLive === true
   );
 }

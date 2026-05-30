@@ -64,3 +64,15 @@ export async function listFollowing(userId: string) {
     },
   });
 }
+
+export async function listFollowingAlphabetical(userId: string) {
+  return prisma.socialGraph.findMany({
+    where: { followerId: userId },
+    orderBy: { following: { name: "asc" } },
+    select: {
+      following: {
+        select: { id: true, name: true },
+      },
+    },
+  });
+}

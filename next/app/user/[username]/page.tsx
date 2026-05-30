@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FollowButton } from "@/components/follow-button";
 import { FeedPostCard } from "@/components/feed-post-card";
+import { FollowingPreview } from "@/components/following-preview";
 import { HeaderNav } from "@/components/header-nav";
 import { UserAvatar } from "@/components/user-avatar";
 import { auth } from "@/lib/auth";
@@ -13,7 +14,6 @@ import {
   followCounts,
   followedUserIds,
   isFollowing,
-  listFollowers,
   listFollowing,
 } from "@/lib/read/social-graph";
 import { getUserContentStats } from "@/lib/read/user-stats";
@@ -41,11 +41,9 @@ export default async function UserProfilePage({ params }: PageProps) {
     notFound();
   }
 
-  const [counts, posts, followerRows, followingRows, contentStats] =
-    await Promise.all([
+  const [counts, posts, followingRows, contentStats] = await Promise.all([
     followCounts(profile.id),
     getPostsByOwner(profile.id),
-    listFollowers(profile.id),
     listFollowing(profile.id),
     getUserContentStats(profile.id),
   ]);
@@ -73,14 +71,6 @@ export default async function UserProfilePage({ params }: PageProps) {
     }),
   );
 
-  const relatedUserIds = [
-    ...followerRows.map((row) => row.follower.id),
-    ...followingRows.map((row) => row.following.id),
-  ];
-  const followedRelated = session
-    ? await followedUserIds(session.user.id, relatedUserIds)
-    : new Set<string>();
-
   const postAuthorIds = [
     ...new Set(
       posts.flatMap((post) => {
@@ -92,6 +82,8 @@ export default async function UserProfilePage({ params }: PageProps) {
   const followedPostAuthors = session
     ? await followedUserIds(session.user.id, postAuthorIds)
     : new Set<string>();
+
+  const followingUsers = followingRows.map((row) => row.following);
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
@@ -154,69 +146,10 @@ export default async function UserProfilePage({ params }: PageProps) {
           </div>
         </section>
 
-        <section className="mt-10 grid gap-8 sm:grid-cols-2">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight">Followers</h2>
-            {followerRows.length === 0 ? (
-              <p className="mt-3 text-sm text-muted">No followers yet.</p>
-            ) : (
-              <ul className="mt-3 space-y-2">
-                {followerRows.map((row) => (
-                  <li
-                    key={row.follower.id}
-                    className="flex items-center justify-between gap-2 text-sm"
-                  >
-                    <Link
-                      href={`/user/${encodeURIComponent(row.follower.name)}`}
-                      className="link-accent"
-                    >
-                      {displayUsername(row.follower.name)}
-                    </Link>
-                    {session && session.user.id !== row.follower.id ? (
-                      <FollowButton
-                        username={row.follower.name}
-                        initialFollowing={followedRelated.has(row.follower.id)}
-                        isSignedIn
-                        isSelf={false}
-                      />
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight">Following</h2>
-            {followingRows.length === 0 ? (
-              <p className="mt-3 text-sm text-muted">Not following anyone yet.</p>
-            ) : (
-              <ul className="mt-3 space-y-2">
-                {followingRows.map((row) => (
-                  <li
-                    key={row.following.id}
-                    className="flex items-center justify-between gap-2 text-sm"
-                  >
-                    <Link
-                      href={`/user/${encodeURIComponent(row.following.name)}`}
-                      className="link-accent"
-                    >
-                      {displayUsername(row.following.name)}
-                    </Link>
-                    {session && session.user.id !== row.following.id ? (
-                      <FollowButton
-                        username={row.following.name}
-                        initialFollowing={followedRelated.has(row.following.id)}
-                        isSignedIn
-                        isSelf={false}
-                      />
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </section>
+        <FollowingPreview
+          profileUsername={profile.name}
+          users={followingUsers}
+        />
 
         <section className="mt-10">
           <h2 className="text-lg font-semibold tracking-tight">Posts</h2>

@@ -4,6 +4,7 @@ import {
 } from "@/lib/video-types";
 import { prepareHtmlLinks } from "@/lib/link-html";
 import { KickEmbed, TwitchEmbed } from "@/components/live-embeds";
+import { FacebookEmbed } from "@/components/facebook-embed";
 import { StreamVideo } from "@/components/stream-video";
 import { VimeoEmbed } from "@/components/vimeo-embed";
 import { YoutubeEmbed } from "@/components/youtube-embed";
@@ -61,6 +62,17 @@ function EmbeddedVideoPlayer({
     return <KickEmbed key={blockId} channel={video.videoId} />;
   }
 
+  if (video.provider === "facebook") {
+    return (
+      <FacebookEmbed
+        key={blockId}
+        sourceUrl={video.sourceUrl}
+        embedWidth={video.embedWidth}
+        embedHeight={video.embedHeight}
+      />
+    );
+  }
+
   if (video.provider === "direct") {
     return (
       <StreamVideo
@@ -112,7 +124,8 @@ export function PostBlocks({ blocks }: PostBlocksProps) {
 
           if (
             video.status === "embedded" ||
-            (video.provider === "youtube" && video.status === "failed")
+            (video.provider === "youtube" && video.status === "failed") ||
+            (video.provider === "facebook" && video.status === "failed")
           ) {
             const player = EmbeddedVideoPlayer({ blockId: block.id, video });
             if (player) {

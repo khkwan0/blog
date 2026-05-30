@@ -12,6 +12,8 @@ export type VideoBlockContent = {
   isLive?: boolean;
   streamKind?: StreamKind;
   directType?: DirectMediaType;
+  embedWidth?: number;
+  embedHeight?: number;
   localPath?: string;
   error?: string;
 };
@@ -43,6 +45,19 @@ export function twitchEmbedUrl(
 
 export function kickEmbedUrl(channel: string): string {
   return `https://player.kick.com/${encodeURIComponent(channel)}`;
+}
+
+export function facebookEmbedUrl(
+  sourceUrl: string,
+  width: number,
+  height: number,
+): string {
+  const endpoint = new URL("https://www.facebook.com/plugins/video.php");
+  endpoint.searchParams.set("href", sourceUrl);
+  endpoint.searchParams.set("show_text", "false");
+  endpoint.searchParams.set("width", String(Math.round(width)));
+  endpoint.searchParams.set("height", String(Math.round(height)));
+  return endpoint.toString();
 }
 
 export function parseVideoBlockContent(content: string): VideoBlockContent | null {
