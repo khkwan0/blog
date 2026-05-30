@@ -4,19 +4,24 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CommentEditor } from "@/components/comment-editor";
 import { CommentsList } from "@/components/comments-list";
+import { PostActions } from "@/components/post-actions";
 import { PostDeleteButton } from "@/components/post-delete-button";
 import { PostBlocks } from "@/components/post-blocks";
 import { PostHtmlContent } from "@/components/post-html-content";
 import { HeaderNav } from "@/components/header-nav";
 import { UserProfileLink } from "@/components/user-profile-link";
 import { auth } from "@/lib/auth";
+import { displayUsername } from "@/lib/format-username";
 import { fetchCommentsForPost, likedCommentIds } from "@/lib/read/comments";
 import {
+  getLikedPostIds,
   getPublishedPostForPage,
   getPublishedPostMetadata,
 } from "@/lib/read/posts";
+import { getRepostedPostIds } from "@/lib/read/reposts";
 import { followedUserIds } from "@/lib/read/social-graph";
 import { formatPostTimestamp } from "@/lib/format-datetime";
+import type { FeedPostBlock } from "@/lib/post-display";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +56,11 @@ export default async function BlogPostPage({ params }: PageProps) {
     notFound();
   }
 
-  const comments = await fetchCommentsForPost(blogId, null);
+  const original = post.repostedFrom ?? post;
+  const isRepost = Boolean(post.repostedFrom);
+  const targetId = original.id;
+
+  const comments = await fetchCommentsForPost(targetId, null);
   const likedIds = session
     ? await likedCommentIds(
         session.user.id,
@@ -62,10 +71,18 @@ export default async function BlogPostPage({ params }: PageProps) {
   const commentAuthorIds = [...new Set(comments.map((comment) => comment.user.id))];
   const followedAuthors = session
     ? await followedUserIds(session.user.id, [
+        original.ownerId,
         post.ownerId,
         ...commentAuthorIds,
       ])
     : new Set<string>();
+
+  const [likedPostIds, repostedPostIds] = session
+    ? await Promise.all([
+        getLikedPostIds(session.user.id, [targetId]),
+        getRepostedPostIds(session.user.id, [targetId]),
+      ])
+    : [new Set<string>(), new Set<string>()];
 
   const commentItems = comments.map((comment) => ({
     id: comment.id,
@@ -77,17 +94,19 @@ export default async function BlogPostPage({ params }: PageProps) {
     followedByViewer: followedAuthors.has(comment.user.id),
   }));
 
-  const followsPostOwner =
-    session && session.user.id !== post.ownerId
-      ? followedAuthors.has(post.ownerId)
+  const followsOriginalOwner =
+    session && session.user.id !== original.ownerId
+      ? followedAuthors.has(original.ownerId)
       : false;
 
-  const htmlContent = post.blocks
+  const htmlContent = (original.blocks as FeedPostBlock[])
     .filter((block) => block.format === "HTML")
     .map((block) => block.content)
     .join("");
 
-  const videoBlocks = post.blocks.filter((block) => block.format === "VIDEO");
+  const videoBlocks = (original.blocks as FeedPostBlock[]).filter(
+    (block) => block.format === "VIDEO",
+  );
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
@@ -119,29 +138,47 @@ export default async function BlogPostPage({ params }: PageProps) {
           {session?.user.id === post.ownerId ? (
             <PostDeleteButton postId={post.id} redirectTo="/" />
           ) : null}
-          {post.title ? (
-            <h1 className="text-2xl font-semibold tracking-tight">{post.title}</h1>
+          {isRepost ? (
+            <p className="mb-2 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+              {displayUsername(post.owner.name)} reposted
+            </p>
+          ) : null}
+          {original.title ? (
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {original.title}
+            </h1>
           ) : null}
           <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
             <span>{formatPostTimestamp(post.createdAt)}</span>
             <span aria-hidden>·</span>
             <UserProfileLink
-              username={post.owner.name}
-              userId={post.ownerId}
+              username={original.owner.name}
+              userId={original.ownerId}
               isSignedIn={Boolean(session)}
               viewerId={session?.user.id}
-              initialFollowing={followsPostOwner}
+              initialFollowing={followsOriginalOwner}
             />
           </p>
           <PostHtmlContent html={htmlContent} className="post-content mt-4" />
           {videoBlocks.length > 0 ? (
             <PostBlocks blocks={videoBlocks} />
           ) : null}
+          <PostActions
+            postId={targetId}
+            postTitle={original.title}
+            commentCount={original._count.comments}
+            totalLikes={original.totalLikes}
+            totalReposts={original.totalReposts}
+            likedByUser={likedPostIds.has(targetId)}
+            repostedByUser={repostedPostIds.has(targetId)}
+            isOwnPost={session?.user.id === original.ownerId}
+            isSignedIn={Boolean(session)}
+          />
         </article>
 
-        <CommentEditor blogEntryId={post.id} isSignedIn={Boolean(session)} />
+        <CommentEditor blogEntryId={targetId} isSignedIn={Boolean(session)} />
         <CommentsList
-          blogId={post.id}
+          blogId={targetId}
           comments={commentItems}
           isSignedIn={Boolean(session)}
           viewerId={session?.user.id}

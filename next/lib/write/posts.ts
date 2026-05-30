@@ -92,10 +92,22 @@ export async function resolveUniqueSlug(source: string) {
 }
 
 export async function archivePost(blogId: string) {
+  const post = await prisma.blogEntry.findUnique({
+    where: { id: blogId },
+    select: { repostedFromId: true, status: true },
+  });
+
   await prisma.blogEntry.update({
     where: { id: blogId },
     data: { status: "ARCHIVED" },
   });
+
+  if (post?.repostedFromId && post.status === "PUBLISHED") {
+    await prisma.blogEntry.update({
+      where: { id: post.repostedFromId },
+      data: { totalReposts: { decrement: 1 } },
+    });
+  }
 }
 
 export async function togglePostLike(blogId: string, userId: string) {

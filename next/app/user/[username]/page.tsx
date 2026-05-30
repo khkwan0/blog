@@ -2,13 +2,13 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FollowButton } from "@/components/follow-button";
+import { FeedPostCard } from "@/components/feed-post-card";
 import { HeaderNav } from "@/components/header-nav";
-import { PostActions } from "@/components/post-actions";
-import { PostBlocks } from "@/components/post-blocks";
 import { UserAvatar } from "@/components/user-avatar";
 import { auth } from "@/lib/auth";
-import { preparePlainTextLinks } from "@/lib/link-html";
+import { feedPostTargetIds, toFeedPostView } from "@/lib/post-display";
 import { getLikedPostIds, getPostsByOwner } from "@/lib/read/posts";
+import { getRepostedPostIds } from "@/lib/read/reposts";
 import {
   followCounts,
   followedUserIds,
@@ -16,8 +16,9 @@ import {
   listFollowers,
   listFollowing,
 } from "@/lib/read/social-graph";
+import { getUserContentStats } from "@/lib/read/user-stats";
 import { findUserByUsername } from "@/lib/read/users";
-import { formatDate, formatPostTimestamp } from "@/lib/format-datetime";
+import { formatDate } from "@/lib/format-datetime";
 import { displayUsername } from "@/lib/format-username";
 
 export const dynamic = "force-dynamic";
@@ -40,11 +41,13 @@ export default async function UserProfilePage({ params }: PageProps) {
     notFound();
   }
 
-  const [counts, posts, followerRows, followingRows] = await Promise.all([
+  const [counts, posts, followerRows, followingRows, contentStats] =
+    await Promise.all([
     followCounts(profile.id),
     getPostsByOwner(profile.id),
     listFollowers(profile.id),
     listFollowing(profile.id),
+    getUserContentStats(profile.id),
   ]);
 
   const isSelf = session?.user.id === profile.id;
@@ -53,12 +56,22 @@ export default async function UserProfilePage({ params }: PageProps) {
       ? await isFollowing(session.user.id, profile.id)
       : false;
 
-  const likedPostIds = session
-    ? await getLikedPostIds(
-        session.user.id,
-        posts.map((post) => post.id),
-      )
-    : new Set<string>();
+  const targetIds = feedPostTargetIds(posts);
+
+  const [likedPostIds, repostedPostIds] = session
+    ? await Promise.all([
+        getLikedPostIds(session.user.id, targetIds),
+        getRepostedPostIds(session.user.id, targetIds),
+      ])
+    : [new Set<string>(), new Set<string>()];
+
+  const feedPosts = posts.map((post) =>
+    toFeedPostView(post, {
+      viewerId: session?.user.id,
+      likedPostIds,
+      repostedPostIds,
+    }),
+  );
 
   const relatedUserIds = [
     ...followerRows.map((row) => row.follower.id),
@@ -66,6 +79,18 @@ export default async function UserProfilePage({ params }: PageProps) {
   ];
   const followedRelated = session
     ? await followedUserIds(session.user.id, relatedUserIds)
+    : new Set<string>();
+
+  const postAuthorIds = [
+    ...new Set(
+      posts.flatMap((post) => {
+        const original = post.repostedFrom ?? post;
+        return [original.ownerId];
+      }),
+    ),
+  ];
+  const followedPostAuthors = session
+    ? await followedUserIds(session.user.id, postAuthorIds)
     : new Set<string>();
 
   return (
@@ -108,6 +133,14 @@ export default async function UserProfilePage({ params }: PageProps) {
               <span className="font-medium">{counts.followerCount}</span> followers
               {" · "}
               <span className="font-medium">{counts.followingCount}</span> following
+              {" · "}
+              <span className="font-medium">{contentStats.postCount}</span> posts
+              {" · "}
+              <span className="font-medium">{contentStats.totalLikes}</span> likes
+              {" · "}
+              <span className="font-medium">{contentStats.totalReposts}</span> reposts
+              {" · "}
+              <span className="font-medium">{contentStats.totalComments}</span> comments
             </p>
             <div className="mt-4">
               <FollowButton
@@ -187,56 +220,18 @@ export default async function UserProfilePage({ params }: PageProps) {
 
         <section className="mt-10">
           <h2 className="text-lg font-semibold tracking-tight">Posts</h2>
-          {posts.length === 0 ? (
+          {feedPosts.length === 0 ? (
             <p className="mt-3 text-sm text-muted">No published posts yet.</p>
           ) : (
             <ul className="mt-4 space-y-6">
-              {posts.map((post) => (
-                <li
-                  key={post.id}
-                  className="relative rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900"
-                >
-                  <Link
-                    href={`/blog/${post.id}`}
-                    className="absolute inset-0 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                    aria-label={
-                      post.title ? `View post: ${post.title}` : "View post"
-                    }
-                  />
-                  <article>
-                    <div className="relative z-10">
-                      {post.title ? (
-                        <h3 className="text-lg font-semibold">{post.title}</h3>
-                      ) : null}
-                      <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                        {formatPostTimestamp(post.createdAt)}
-                      </p>
-                      {post.excerpt ? (
-                        <p
-                          className="post-excerpt mt-3 text-zinc-700 dark:text-zinc-300"
-                          dangerouslySetInnerHTML={{
-                            __html: preparePlainTextLinks(post.excerpt),
-                          }}
-                        />
-                      ) : null}
-                    </div>
-                    <div className="relative z-10">
-                      <PostBlocks
-                        blocks={post.blocks.filter(
-                          (block) => block.format === "VIDEO",
-                        )}
-                      />
-                    </div>
-                    <PostActions
-                      postId={post.id}
-                      postTitle={post.title}
-                      commentCount={post._count.comments}
-                      totalLikes={post.totalLikes}
-                      likedByUser={likedPostIds.has(post.id)}
-                      isSignedIn={Boolean(session)}
-                    />
-                  </article>
-                </li>
+              {feedPosts.map((post) => (
+                <FeedPostCard
+                  key={post.entryId}
+                  post={post}
+                  isSignedIn={Boolean(session)}
+                  viewerId={session?.user.id}
+                  followedOwnerIds={followedPostAuthors}
+                />
               ))}
             </ul>
           )}

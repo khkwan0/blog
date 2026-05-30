@@ -9,7 +9,10 @@ type PostActionsProps = {
   postTitle?: string | null;
   commentCount: number;
   totalLikes: number;
+  totalReposts: number;
   likedByUser: boolean;
+  repostedByUser: boolean;
+  isOwnPost: boolean;
   isSignedIn: boolean;
 };
 
@@ -50,6 +53,27 @@ function ThumbsUpIcon({ filled }: { filled: boolean }) {
   );
 }
 
+function RepostIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
+      <path d="M17 1l4 4-4 4" />
+      <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+      <path d="M7 23l-4-4 4-4" />
+      <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+    </svg>
+  );
+}
+
 function ShareIcon() {
   return (
     <svg
@@ -78,13 +102,19 @@ export function PostActions({
   postTitle,
   commentCount,
   totalLikes: initialTotalLikes,
+  totalReposts: initialTotalReposts,
   likedByUser: initialLiked,
+  repostedByUser: initialReposted,
+  isOwnPost,
   isSignedIn,
 }: PostActionsProps) {
   const router = useRouter();
   const [liked, setLiked] = useState(initialLiked);
   const [totalLikes, setTotalLikes] = useState(initialTotalLikes);
+  const [reposted, setReposted] = useState(initialReposted);
+  const [totalReposts, setTotalReposts] = useState(initialTotalReposts);
   const [loading, setLoading] = useState(false);
+  const [repostLoading, setRepostLoading] = useState(false);
   const [shared, setShared] = useState(false);
 
   const onLike = async () => {
@@ -116,6 +146,38 @@ export function PostActions({
 
     setLiked(data.liked);
     setTotalLikes(data.totalLikes);
+  };
+
+  const onRepost = async () => {
+    if (!isSignedIn) {
+      router.push("/auth/login");
+      return;
+    }
+
+    if (isOwnPost || repostLoading) {
+      return;
+    }
+
+    setRepostLoading(true);
+
+    const response = await fetch(`/api/posts/${postId}/repost`, {
+      method: "POST",
+    });
+
+    setRepostLoading(false);
+
+    if (!response.ok) {
+      return;
+    }
+
+    const data = (await response.json()) as {
+      reposted: boolean;
+      totalReposts: number;
+    };
+
+    setReposted(data.reposted);
+    setTotalReposts(data.totalReposts);
+    router.refresh();
   };
 
   const onShare = async () => {
@@ -164,6 +226,31 @@ export function PostActions({
         <ThumbsUpIcon filled={liked} />
         <span className="text-sm tabular-nums">{totalLikes}</span>
       </button>
+
+      {!isOwnPost ? (
+        <button
+          type="button"
+          onClick={() => void onRepost()}
+          disabled={repostLoading}
+          className={`${actionClass} flex items-center gap-1.5 disabled:opacity-50${
+            reposted ? " text-emerald-700 dark:text-emerald-400" : ""
+          }`}
+          aria-label={reposted ? "Undo repost" : "Repost"}
+          title={reposted ? "Undo repost" : "Repost"}
+        >
+          <RepostIcon filled={reposted} />
+          <span className="text-sm tabular-nums">{totalReposts}</span>
+        </button>
+      ) : (
+        <span
+          className={`${actionClass} flex cursor-default items-center gap-1.5`}
+          aria-label={`${totalReposts} reposts`}
+          title="Reposts"
+        >
+          <RepostIcon filled={false} />
+          <span className="text-sm tabular-nums">{totalReposts}</span>
+        </span>
+      )}
 
       <button
         type="button"

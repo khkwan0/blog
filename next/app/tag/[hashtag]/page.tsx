@@ -1,14 +1,12 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { FeedPostCard } from "@/components/feed-post-card";
 import { HeaderNav } from "@/components/header-nav";
-import { PostActions } from "@/components/post-actions";
-import { PostBlocks } from "@/components/post-blocks";
-import { UserProfileLink } from "@/components/user-profile-link";
 import { auth } from "@/lib/auth";
-import { formatPostTimestamp } from "@/lib/format-datetime";
-import { preparePlainTextLinks } from "@/lib/link-html";
+import { feedPostTargetIds, toFeedPostView } from "@/lib/post-display";
 import { getLikedPostIds, getPostsByHashtag } from "@/lib/read/posts";
+import { getRepostedPostIds } from "@/lib/read/reposts";
 import { followedUserIds } from "@/lib/read/social-graph";
 
 export const dynamic = "force-dynamic";
@@ -30,18 +28,27 @@ export default async function HashtagPage({ params }: PageProps) {
   });
 
   const posts = await getPostsByHashtag(hashtag);
+  const targetIds = feedPostTargetIds(posts);
 
-  const likedPostIds = session
-    ? await getLikedPostIds(
-        session.user.id,
-        posts.map((post) => post.id),
-      )
-    : new Set<string>();
+  const [likedPostIds, repostedPostIds] = session
+    ? await Promise.all([
+        getLikedPostIds(session.user.id, targetIds),
+        getRepostedPostIds(session.user.id, targetIds),
+      ])
+    : [new Set<string>(), new Set<string>()];
 
   const ownerIds = [...new Set(posts.map((post) => post.ownerId))];
   const followedOwners = session
     ? await followedUserIds(session.user.id, ownerIds)
     : new Set<string>();
+
+  const feedPosts = posts.map((post) =>
+    toFeedPostView(post, {
+      viewerId: session?.user.id,
+      likedPostIds,
+      repostedPostIds,
+    }),
+  );
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
@@ -70,64 +77,18 @@ export default async function HashtagPage({ params }: PageProps) {
           <span className="text-violet-700 dark:text-violet-400">#{hashtag}</span>
         </h1>
 
-        {posts.length === 0 ? (
+        {feedPosts.length === 0 ? (
           <p className="mt-6 text-muted">No posts with this hashtag yet.</p>
         ) : (
           <ul className="mt-6 space-y-6">
-            {posts.map((post) => (
-              <li
-                key={post.id}
-                className="relative rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900"
-              >
-                <Link
-                  href={`/blog/${post.id}`}
-                  className="absolute inset-0 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                  aria-label={
-                    post.title ? `View post: ${post.title}` : "View post"
-                  }
-                />
-                <article>
-                  <div className="relative z-10">
-                    {post.title ? (
-                      <h2 className="text-lg font-semibold">{post.title}</h2>
-                    ) : null}
-                    <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
-                      <span>{formatPostTimestamp(post.createdAt)}</span>
-                      <span aria-hidden>·</span>
-                      <UserProfileLink
-                        username={post.owner.name}
-                        userId={post.ownerId}
-                        isSignedIn={Boolean(session)}
-                        viewerId={session?.user.id}
-                        initialFollowing={followedOwners.has(post.ownerId)}
-                      />
-                    </p>
-                    {post.excerpt ? (
-                      <p
-                        className="post-excerpt mt-3 text-zinc-700 dark:text-zinc-300"
-                        dangerouslySetInnerHTML={{
-                          __html: preparePlainTextLinks(post.excerpt),
-                        }}
-                      />
-                    ) : null}
-                  </div>
-                  <div className="relative z-10">
-                    <PostBlocks
-                      blocks={post.blocks.filter(
-                        (block) => block.format === "VIDEO",
-                      )}
-                    />
-                  </div>
-                  <PostActions
-                    postId={post.id}
-                    postTitle={post.title}
-                    commentCount={post._count.comments}
-                    totalLikes={post.totalLikes}
-                    likedByUser={likedPostIds.has(post.id)}
-                    isSignedIn={Boolean(session)}
-                  />
-                </article>
-              </li>
+            {feedPosts.map((post) => (
+              <FeedPostCard
+                key={post.entryId}
+                post={post}
+                isSignedIn={Boolean(session)}
+                viewerId={session?.user.id}
+                followedOwnerIds={followedOwners}
+              />
             ))}
           </ul>
         )}

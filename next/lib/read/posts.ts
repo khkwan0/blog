@@ -7,7 +7,9 @@ const feedPostSelect = {
   slug: true,
   excerpt: true,
   totalLikes: true,
+  totalReposts: true,
   createdAt: true,
+  repostedFromId: true,
   owner: {
     select: {
       name: true,
@@ -28,6 +30,36 @@ const feedPostSelect = {
       sortOrder: true,
     },
   },
+  repostedFrom: {
+    select: {
+      id: true,
+      title: true,
+      excerpt: true,
+      totalLikes: true,
+      totalReposts: true,
+      createdAt: true,
+      ownerId: true,
+      owner: {
+        select: {
+          name: true,
+        },
+      },
+      _count: {
+        select: {
+          comments: true,
+        },
+      },
+      blocks: {
+        orderBy: { sortOrder: "asc" as const },
+        select: {
+          id: true,
+          format: true,
+          content: true,
+          sortOrder: true,
+        },
+      },
+    },
+  },
 };
 
 const profilePostSelect = {
@@ -35,7 +67,15 @@ const profilePostSelect = {
   title: true,
   excerpt: true,
   totalLikes: true,
+  totalReposts: true,
   createdAt: true,
+  repostedFromId: true,
+  ownerId: true,
+  owner: {
+    select: {
+      name: true,
+    },
+  },
   _count: {
     select: {
       comments: true,
@@ -48,6 +88,36 @@ const profilePostSelect = {
       format: true,
       content: true,
       sortOrder: true,
+    },
+  },
+  repostedFrom: {
+    select: {
+      id: true,
+      title: true,
+      excerpt: true,
+      totalLikes: true,
+      totalReposts: true,
+      createdAt: true,
+      ownerId: true,
+      owner: {
+        select: {
+          name: true,
+        },
+      },
+      _count: {
+        select: {
+          comments: true,
+        },
+      },
+      blocks: {
+        orderBy: { sortOrder: "asc" as const },
+        select: {
+          id: true,
+          format: true,
+          content: true,
+          sortOrder: true,
+        },
+      },
     },
   },
 };
@@ -77,6 +147,7 @@ export async function getPostsByHashtag(hashtag: string) {
   return prisma.blogEntry.findMany({
     where: {
       ...publicPostWhere,
+      repostedFromId: null,
       hashTags: { some: { hashtag: normalized } },
     },
     orderBy: { createdAt: "desc" },
@@ -130,12 +201,20 @@ export async function getPublishedPostForPage(blogId: string) {
       slug: true,
       excerpt: true,
       createdAt: true,
+      totalLikes: true,
+      totalReposts: true,
+      repostedFromId: true,
       owner: {
         select: {
           name: true,
         },
       },
       ownerId: true,
+      _count: {
+        select: {
+          comments: true,
+        },
+      },
       blocks: {
         orderBy: { sortOrder: "asc" },
         select: {
@@ -143,6 +222,36 @@ export async function getPublishedPostForPage(blogId: string) {
           format: true,
           content: true,
           sortOrder: true,
+        },
+      },
+      repostedFrom: {
+        select: {
+          id: true,
+          title: true,
+          excerpt: true,
+          createdAt: true,
+          totalLikes: true,
+          totalReposts: true,
+          ownerId: true,
+          owner: {
+            select: {
+              name: true,
+            },
+          },
+          _count: {
+            select: {
+              comments: true,
+            },
+          },
+          blocks: {
+            orderBy: { sortOrder: "asc" },
+            select: {
+              id: true,
+              format: true,
+              content: true,
+              sortOrder: true,
+            },
+          },
         },
       },
     },

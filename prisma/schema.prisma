@@ -118,14 +118,20 @@ model BlogEntry {
   blocks      BlogEntryBlock[]
   hashTags    HashTag[]
   mentions    BlogEntryMention[]
-  likes       BlogEntryLike[]
-  comments    Comment[]
-  totalLikes  Int              @default(1)
-  createdAt   DateTime         @default(now())
-  modifiedAt  DateTime         @default(now()) @updatedAt
+  likes          BlogEntryLike[]
+  comments       Comment[]
+  totalLikes     Int              @default(1)
+  totalReposts   Int              @default(0)
+  repostedFromId String?
+  repostedFrom   BlogEntry?       @relation("BlogEntryReposts", fields: [repostedFromId], references: [id], onDelete: Cascade)
+  reposts        BlogEntry[]      @relation("BlogEntryReposts")
+  createdAt      DateTime         @default(now())
+  modifiedAt     DateTime         @default(now()) @updatedAt
 
+  @@unique([ownerId, repostedFromId])
   @@index([ownerId, createdAt])
   @@index([status, publishedAt])
+  @@index([repostedFromId])
 }
 
 model BlogEntryBlock {
