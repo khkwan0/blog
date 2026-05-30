@@ -87,6 +87,66 @@ export async function createPost(input: {
   };
 }
 
+export async function updatePostContent(input: {
+  blogId: string;
+  ownerId: string;
+  content: string;
+}) {
+  const content = sanitizeContentHtml(input.content);
+
+  const post = await prisma.blogEntry.findFirst({
+    where: {
+      id: input.blogId,
+      ownerId: input.ownerId,
+      repostedFromId: null,
+      status: "PUBLISHED",
+    },
+    select: {
+      id: true,
+      blocks: {
+        where: { format: "HTML" },
+        orderBy: { sortOrder: "asc" },
+        select: { id: true },
+        take: 1,
+      },
+    },
+  });
+
+  if (!post) {
+    return { error: "Post not found.", status: 404 as const };
+  }
+
+  const htmlBlock = post.blocks[0];
+  if (!htmlBlock) {
+    return { error: "Post content not found.", status: 404 as const };
+  }
+
+  await prisma.blogEntryBlock.update({
+    where: { id: htmlBlock.id },
+    data: { content },
+  });
+
+  await prisma.blogEntry.update({
+    where: { id: post.id },
+    data: {
+      excerpt: excerptFromHtml(content),
+      modifiedAt: new Date(),
+    },
+  });
+
+  const media = await processPostVideos(post.id);
+  const hashtags = await processPostHashTags(post.id);
+  const mentions = await processPostMentions(post.id);
+
+  return {
+    id: post.id,
+    media,
+    hashtags,
+    mentions,
+    status: 200 as const,
+  };
+}
+
 export async function resolveUniqueSlug(source: string) {
   return uniqueSlug(source, slugExists);
 }

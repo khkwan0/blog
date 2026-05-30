@@ -1,8 +1,9 @@
 "use client";
 
 import { EditorContent, useEditor } from "@tiptap/react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import { EditorImageButton } from "@/components/editor-image-button";
 import { createEditorExtensions } from "@/lib/editor-extensions";
@@ -44,15 +45,28 @@ function ToolbarButton({
   );
 }
 
-export function PostEditorInner() {
+export type PostEditorInnerProps = {
+  postId?: string;
+  initialContent?: string;
+  cancelHref?: string;
+};
+
+export function PostEditorInner({
+  postId,
+  initialContent,
+  cancelHref,
+}: PostEditorInnerProps = {}) {
+  const isEditing = Boolean(postId);
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const editorRef = useRef<Editor | null>(null);
+  const hydratedRef = useRef(false);
 
   const editor = useEditor({
     extensions: createEditorExtensions(),
     immediatelyRender: false,
+    content: initialContent || undefined,
     onCreate: ({ editor: created }) => {
       editorRef.current = created;
     },
@@ -88,6 +102,15 @@ export function PostEditorInner() {
     },
   });
 
+  useEffect(() => {
+    if (!editor || !initialContent || hydratedRef.current) {
+      return;
+    }
+
+    editor.commands.setContent(initialContent);
+    hydratedRef.current = true;
+  }, [editor, initialContent]);
+
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!editor) {
@@ -105,14 +128,21 @@ export function PostEditorInner() {
     setError("");
     setLoading(true);
 
-    const response = await fetch("/api/posts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        content,
-        status: "PUBLISHED",
-      }),
-    });
+    const response = await fetch(
+      isEditing ? `/api/posts/${postId}` : "/api/posts",
+      {
+        method: isEditing ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          isEditing
+            ? { content }
+            : {
+                content,
+                status: "PUBLISHED",
+              },
+        ),
+      },
+    );
 
     setLoading(false);
 
@@ -120,7 +150,16 @@ export function PostEditorInner() {
       const data = (await response.json().catch(() => null)) as {
         error?: string;
       } | null;
-      setError(data?.error ?? "Unable to publish post.");
+      setError(
+        data?.error ??
+          (isEditing ? "Unable to save changes." : "Unable to publish post."),
+      );
+      return;
+    }
+
+    if (isEditing) {
+      router.push(`/blog/${postId}`);
+      router.refresh();
       return;
     }
 
@@ -130,6 +169,9 @@ export function PostEditorInner() {
 
   return (
     <section className="mb-10 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+      {isEditing ? (
+        <h2 className="mb-4 text-lg font-semibold tracking-tight">Edit post</h2>
+      ) : null}
       <form onSubmit={onSubmit} className="space-y-4">
         <div>
           <div className="overflow-hidden rounded-md border border-zinc-300 dark:border-zinc-600">
@@ -190,13 +232,26 @@ export function PostEditorInner() {
 
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
-        <button
-          type="submit"
-          disabled={loading || !editor}
-          className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
-        >
-          {loading ? "Scanning links and publishing..." : "Publish"}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="submit"
+            disabled={loading || !editor}
+            className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+          >
+            {loading
+              ? isEditing
+                ? "Saving changes…"
+                : "Scanning links and publishing..."
+              : isEditing
+                ? "Save changes"
+                : "Publish"}
+          </button>
+          {isEditing && cancelHref ? (
+            <Link href={cancelHref} className="text-sm text-muted link-accent">
+              Cancel
+            </Link>
+          ) : null}
+        </div>
       </form>
     </section>
   );

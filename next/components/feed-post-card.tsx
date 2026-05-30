@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PostActions } from "@/components/post-actions";
 import { PostBlocks } from "@/components/post-blocks";
 import { PostDeleteButton } from "@/components/post-delete-button";
+import { PostEditButton } from "@/components/post-edit-button";
 import { UserProfileLink } from "@/components/user-profile-link";
 import { formatPostTimestamp } from "@/lib/format-datetime";
 import { displayUsername } from "@/lib/format-username";
@@ -30,6 +31,7 @@ export function FeedPostCard({
         className="absolute inset-0 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         aria-label={post.title ? `View post: ${post.title}` : "View post"}
       />
+      {post.canEdit ? <PostEditButton postId={post.targetId} /> : null}
       {post.canDelete ? <PostDeleteButton postId={post.entryId} /> : null}
       <article>
         {post.isRepost && post.reposterName ? (

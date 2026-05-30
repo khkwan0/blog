@@ -6,6 +6,7 @@ import { CommentEditor } from "@/components/comment-editor";
 import { CommentsList } from "@/components/comments-list";
 import { PostActions } from "@/components/post-actions";
 import { PostDeleteButton } from "@/components/post-delete-button";
+import { PostEditButton } from "@/components/post-edit-button";
 import { PostBlocks } from "@/components/post-blocks";
 import { PostHtmlContent } from "@/components/post-html-content";
 import { HeaderNav } from "@/components/header-nav";
@@ -108,6 +109,11 @@ export default async function BlogPostPage({ params }: PageProps) {
     (block) => block.format === "VIDEO",
   );
 
+  const canEdit =
+    session?.user.id === original.ownerId &&
+    !post.repostedFromId &&
+    !isRepost;
+
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
       <header className="border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
@@ -135,6 +141,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         </Link>
 
         <article className="relative mt-6 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+          {canEdit ? <PostEditButton postId={original.id} /> : null}
           {session?.user.id === post.ownerId ? (
             <PostDeleteButton postId={post.id} redirectTo="/" />
           ) : null}

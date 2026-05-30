@@ -289,6 +289,36 @@ export async function getPostForArchive(blogId: string) {
   });
 }
 
+export async function getPostForEdit(blogId: string, ownerId: string) {
+  const post = await prisma.blogEntry.findFirst({
+    where: {
+      id: blogId,
+      ownerId,
+      repostedFromId: null,
+      ...publicPostWhere,
+    },
+    select: {
+      id: true,
+      title: true,
+      blocks: {
+        where: { format: "HTML" },
+        orderBy: { sortOrder: "asc" },
+        select: { content: true },
+      },
+    },
+  });
+
+  if (!post) {
+    return null;
+  }
+
+  return {
+    id: post.id,
+    title: post.title,
+    content: post.blocks.map((block) => block.content).join(""),
+  };
+}
+
 export async function slugExists(slug: string) {
   const existing = await prisma.blogEntry.findUnique({
     where: { slug },
