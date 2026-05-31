@@ -17,8 +17,7 @@ import {
   likedCommentIds,
 } from "@/lib/read/comments";
 import { getPublishedPostSummary } from "@/lib/read/posts";
-import { followedUserIds } from "@/lib/read/social-graph";
-import { formatPostTimestamp } from "@/lib/format-datetime";
+import { formatRelativeTime } from "@/lib/format-datetime";
 
 export const dynamic = "force-dynamic";
 
@@ -67,18 +66,9 @@ export default async function CommentThreadPage({ params }: PageProps) {
     ? await likedCommentIds(session.user.id, allIds)
     : new Set<string>();
 
-  const authorIds = [
-    parentComment.user.id,
-    ...replies.map((reply) => reply.user.id),
-  ];
-  const followedAuthors = session
-    ? await followedUserIds(session.user.id, authorIds)
-    : new Set<string>();
-
   const parentItem = {
     ...parentComment,
     likedByUser: likedIds.has(parentComment.id),
-    followedByViewer: followedAuthors.has(parentComment.user.id),
   };
 
   const replyItems = replies.map((reply) => ({
@@ -88,7 +78,6 @@ export default async function CommentThreadPage({ params }: PageProps) {
     totalLikes: reply.totalLikes,
     likedByUser: likedIds.has(reply.id),
     user: reply.user,
-    followedByViewer: followedAuthors.has(reply.user.id),
   }));
 
   return (
@@ -115,13 +104,9 @@ export default async function CommentThreadPage({ params }: PageProps) {
             <UserProfileLink
               username={parentItem.user.username}
               displayName={parentItem.user.name}
-              userId={parentItem.user.id}
-              isSignedIn={Boolean(session)}
-              viewerId={session?.user.id}
-              initialFollowing={parentItem.followedByViewer}
             />
             <span aria-hidden>·</span>
-            <span>{formatPostTimestamp(parentItem.createdAt)}</span>
+            <span>{formatRelativeTime(parentItem.createdAt)}</span>
           </p>
           <PostHtmlContent
             html={parentItem.content}

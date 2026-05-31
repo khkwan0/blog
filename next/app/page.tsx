@@ -6,11 +6,10 @@ import { FollowingStrip } from "@/components/following-strip";
 import { PostEditor } from "@/components/post-editor";
 import { auth } from "@/lib/auth";
 import { feedPostTargetIds, toFeedPostView } from "@/lib/post-display";
-import { getFeedPosts, getLikedPostIds } from "@/lib/read/posts";
+import { getFeedPosts, getLatestPosts, getLikedPostIds } from "@/lib/read/posts";
 import { getRepostedPostIds } from "@/lib/read/reposts";
 import {
   followCounts,
-  followedUserIds,
   listFollowing,
 } from "@/lib/read/social-graph";
 import { getUserContentStats } from "@/lib/read/user-stats";
@@ -35,10 +34,11 @@ export default async function Home() {
     ? [...new Set([session.user.id, ...followingUsers.map((user) => user.id)])]
     : [];
 
-  const posts =
-    session && feedOwnerIds.length > 0
+  const posts = session
+    ? feedOwnerIds.length > 0
       ? await getFeedPosts(feedOwnerIds)
-      : [];
+      : []
+    : await getLatestPosts();
 
   const targetIds = feedPostTargetIds(posts);
 
@@ -49,18 +49,6 @@ export default async function Home() {
       ])
     : [new Set<string>(), new Set<string>()];
 
-  const ownerIds = [
-    ...new Set(
-      posts.flatMap((post) => {
-        const original = post.repostedFrom ?? post;
-        return [post.ownerId, original.ownerId];
-      }),
-    ),
-  ];
-  const followedOwners = session
-    ? await followedUserIds(session.user.id, ownerIds)
-    : new Set<string>();
-
   const feedPosts = posts.map((post) =>
     toFeedPostView(post, {
       viewerId: session?.user.id,
@@ -68,6 +56,26 @@ export default async function Home() {
       repostedPostIds,
     }),
   );
+
+  const feedList =
+    feedPosts.length === 0 ? (
+      <p className="mt-6 text-muted">
+        {session
+          ? "No posts from you or people you follow yet."
+          : "No posts yet."}
+      </p>
+    ) : (
+      <ul className="mt-6 space-y-6">
+        {feedPosts.map((post) => (
+          <FeedPostCard
+            key={post.entryId}
+            post={post}
+            isSignedIn={Boolean(session)}
+            viewerId={session?.user.id}
+          />
+        ))}
+      </ul>
+    );
 
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
@@ -89,7 +97,6 @@ export default async function Home() {
                 followerCount={myCounts.followerCount}
                 followingCount={myCounts.followingCount}
                 contentStats={contentStats}
-                users={followingUsers}
               />
             </div>
 
@@ -99,29 +106,11 @@ export default async function Home() {
                 avatarImage={session.user.image}
               />
 
-              {feedPosts.length === 0 ? (
-                <p className="mt-6 text-muted">
-                  No posts from you or people you follow yet.
-                </p>
-              ) : null}
-
-              {feedPosts.length > 0 ? (
-                <ul className="mt-6 space-y-6">
-                  {feedPosts.map((post) => (
-                    <FeedPostCard
-                      key={post.entryId}
-                      post={post}
-                      isSignedIn={Boolean(session)}
-                      viewerId={session.user.id}
-                      followedOwnerIds={followedOwners}
-                    />
-                  ))}
-                </ul>
-              ) : null}
+              {feedList}
             </div>
           </div>
         ) : (
-          <p className="text-muted">Sign in to see posts from people you follow.</p>
+          feedList
         )}
       </main>
     </div>

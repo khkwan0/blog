@@ -11,7 +11,7 @@ import { PostBlocks } from "@/components/post-blocks";
 import { PostHtmlContent } from "@/components/post-html-content";
 import { HeaderNav } from "@/components/header-nav";
 import { SiteHeader } from "@/components/site-header";
-import { UserProfileLink } from "@/components/user-profile-link";
+import { PostAuthorHeader } from "@/components/post-author-header";
 import { UserIdentityLabels } from "@/components/user-identity-labels";
 import { auth } from "@/lib/auth";
 import { fetchCommentsForPost, likedCommentIds } from "@/lib/read/comments";
@@ -21,8 +21,6 @@ import {
   getPublishedPostMetadata,
 } from "@/lib/read/posts";
 import { getRepostedPostIds } from "@/lib/read/reposts";
-import { followedUserIds } from "@/lib/read/social-graph";
-import { formatPostTimestamp } from "@/lib/format-datetime";
 import type { FeedPostBlock } from "@/lib/post-display";
 
 export const dynamic = "force-dynamic";
@@ -70,15 +68,6 @@ export default async function BlogPostPage({ params }: PageProps) {
       )
     : new Set<string>();
 
-  const commentAuthorIds = [...new Set(comments.map((comment) => comment.user.id))];
-  const followedAuthors = session
-    ? await followedUserIds(session.user.id, [
-        original.ownerId,
-        post.ownerId,
-        ...commentAuthorIds,
-      ])
-    : new Set<string>();
-
   const [likedPostIds, repostedPostIds] = session
     ? await Promise.all([
         getLikedPostIds(session.user.id, [targetId]),
@@ -93,13 +82,7 @@ export default async function BlogPostPage({ params }: PageProps) {
     totalLikes: comment.totalLikes,
     likedByUser: likedIds.has(comment.id),
     user: comment.user,
-    followedByViewer: followedAuthors.has(comment.user.id),
   }));
-
-  const followsOriginalOwner =
-    session && session.user.id !== original.ownerId
-      ? followedAuthors.has(original.ownerId)
-      : false;
 
   const htmlContent = (original.blocks as FeedPostBlock[])
     .filter((block) => block.format === "HTML")
@@ -148,23 +131,17 @@ export default async function BlogPostPage({ params }: PageProps) {
               <span>reposted</span>
             </p>
           ) : null}
+          <PostAuthorHeader
+            username={original.owner.username}
+            displayName={original.owner.name}
+            image={original.owner.image}
+            createdAt={post.createdAt}
+          />
           {original.title ? (
-            <h1 className="text-2xl font-semibold tracking-tight">
+            <h1 className="mt-3 text-2xl font-semibold tracking-tight">
               {original.title}
             </h1>
           ) : null}
-          <p className="mt-2 flex flex-wrap items-start gap-x-2 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
-            <span>{formatPostTimestamp(post.createdAt)}</span>
-            <span aria-hidden>·</span>
-            <UserProfileLink
-              username={original.owner.username}
-              displayName={original.owner.name}
-              userId={original.ownerId}
-              isSignedIn={Boolean(session)}
-              viewerId={session?.user.id}
-              initialFollowing={followsOriginalOwner}
-            />
-          </p>
           <PostHtmlContent html={htmlContent} className="post-content mt-4" />
           {videoBlocks.length > 0 ? (
             <PostBlocks blocks={videoBlocks} />

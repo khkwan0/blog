@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { PostActions } from "@/components/post-actions";
+import { PostAuthorHeader } from "@/components/post-author-header";
 import { PostBlocks } from "@/components/post-blocks";
 import { PostDeleteButton } from "@/components/post-delete-button";
 import { PostEditButton } from "@/components/post-edit-button";
-import { UserProfileLink } from "@/components/user-profile-link";
+import { PostHtmlContent } from "@/components/post-html-content";
 import { UserIdentityLabels } from "@/components/user-identity-labels";
-import { formatPostTimestamp } from "@/lib/format-datetime";
 import { preparePlainTextLinks } from "@/lib/link-html";
 import type { FeedPostView } from "@/lib/post-display";
 
@@ -13,7 +13,6 @@ type FeedPostCardProps = {
   post: FeedPostView;
   isSignedIn: boolean;
   viewerId?: string;
-  followedOwnerIds: Set<string>;
   showOwnerOnRepost?: boolean;
 };
 
@@ -21,21 +20,23 @@ export function FeedPostCard({
   post,
   isSignedIn,
   viewerId,
-  followedOwnerIds,
   showOwnerOnRepost = true,
 }: FeedPostCardProps) {
+  const author = post.isRepost ? post.targetOwner : post.owner;
+  const htmlContent = post.blocks
+    .filter((block) => block.format === "HTML")
+    .map((block) => block.content)
+    .join("");
+  const videoBlocks = post.blocks.filter((block) => block.format === "VIDEO");
+  const hasImages = /<img\b/i.test(htmlContent);
+
   return (
     <li className="relative rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-      <Link
-        href={post.href}
-        className="absolute inset-0 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-        aria-label={post.title ? `View post: ${post.title}` : "View post"}
-      />
       {post.canEdit ? <PostEditButton postId={post.targetId} /> : null}
       {post.canDelete ? <PostDeleteButton postId={post.entryId} /> : null}
       <article>
         {post.isRepost && post.reposterDisplayName && post.reposterUsername ? (
-          <p className="relative z-10 mb-2 flex flex-wrap items-baseline gap-x-1 text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="mb-2 flex flex-wrap items-baseline gap-x-1 text-sm text-zinc-500 dark:text-zinc-400">
             <UserIdentityLabels
               displayName={post.reposterDisplayName}
               username={post.reposterUsername}
@@ -43,48 +44,42 @@ export function FeedPostCard({
             <span>reposted</span>
           </p>
         ) : null}
-        <div className="relative z-10">
-          {post.title ? (
-            <h3 className="text-lg font-semibold">{post.title}</h3>
-          ) : null}
-          <p className="mt-2 flex flex-wrap items-start gap-x-2 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
-            <span>{formatPostTimestamp(post.createdAt)}</span>
-            {showOwnerOnRepost || !post.isRepost ? (
-              <>
-                <span aria-hidden>·</span>
-                <UserProfileLink
-                  username={
-                    post.isRepost
-                      ? post.targetOwner.username
-                      : post.owner.username
-                  }
-                  displayName={
-                    post.isRepost ? post.targetOwner.name : post.owner.name
-                  }
-                  userId={post.isRepost ? post.targetOwnerId : post.ownerId}
-                  isSignedIn={isSignedIn}
-                  viewerId={viewerId}
-                  initialFollowing={followedOwnerIds.has(
-                    post.isRepost ? post.targetOwnerId : post.ownerId,
-                  )}
-                />
-              </>
-            ) : null}
-          </p>
-          {post.excerpt ? (
-            <p
-              className="post-excerpt mt-3 text-zinc-700 dark:text-zinc-300"
-              dangerouslySetInnerHTML={{
-                __html: preparePlainTextLinks(post.excerpt),
-              }}
-            />
-          ) : null}
-        </div>
-        <div className="relative z-10">
-          <PostBlocks
-            blocks={post.blocks.filter((block) => block.format === "VIDEO")}
+        {showOwnerOnRepost || !post.isRepost ? (
+          <PostAuthorHeader
+            username={author.username}
+            displayName={author.name}
+            image={author.image}
+            createdAt={post.createdAt}
           />
-        </div>
+        ) : null}
+        {post.title ? (
+          <Link
+            href={post.href}
+            className="mt-3 block no-underline text-inherit hover:no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            <h3 className="text-lg font-semibold">{post.title}</h3>
+          </Link>
+        ) : null}
+        {post.excerpt && !hasImages ? (
+          <p
+            className="post-excerpt mt-3 text-zinc-700 dark:text-zinc-300"
+            dangerouslySetInnerHTML={{
+              __html: preparePlainTextLinks(post.excerpt),
+            }}
+          />
+        ) : null}
+        {htmlContent && (hasImages || !post.excerpt) ? (
+          <PostHtmlContent html={htmlContent} className="post-content mt-3" />
+        ) : null}
+        {!post.title && (post.excerpt || hasImages) ? (
+          <Link
+            href={post.href}
+            className="mt-2 inline-block text-sm link-accent"
+          >
+            Read post
+          </Link>
+        ) : null}
+        <PostBlocks blocks={videoBlocks} />
         <PostActions
           postId={post.targetId}
           postTitle={post.title}

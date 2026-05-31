@@ -32,10 +32,11 @@ function trustedOrigins() {
           }
         }),
     ),
+    "https://appleid.apple.com",
   ];
 }
 
-const socialProviders = getSocialProviders();
+const socialProviders = await getSocialProviders();
 
 export const auth = betterAuth({
   baseURL: appUrl,

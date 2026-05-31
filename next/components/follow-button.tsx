@@ -29,8 +29,8 @@ export function FollowButton({
 
   const sizeClass =
     size === "md"
-      ? "px-4 py-2 text-sm"
-      : "px-2.5 py-1 text-xs";
+      ? "shrink-0 px-4 py-2 text-sm"
+      : "shrink-0 px-2.5 py-1 text-xs";
 
   if (!isSignedIn) {
     return (

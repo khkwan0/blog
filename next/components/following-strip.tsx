@@ -1,12 +1,4 @@
 import Link from "next/link";
-import { UserAvatar } from "@/components/user-avatar";
-
-export type FollowingUser = {
-  id: string;
-  username: string;
-  name: string;
-  image: string | null;
-};
 
 export type SidebarStats = {
   postCount: number;
@@ -20,7 +12,6 @@ type FollowingStripProps = {
   followerCount: number;
   followingCount: number;
   contentStats: SidebarStats;
-  users: FollowingUser[];
 };
 
 function StatLink({
@@ -45,7 +36,6 @@ export function FollowingStrip({
   followerCount,
   followingCount,
   contentStats,
-  users,
 }: FollowingStripProps) {
   const profileHref = `/user/${encodeURIComponent(profileUsername)}`;
 
@@ -83,25 +73,6 @@ export function FollowingStrip({
           label="comments & replies"
         />
       </div>
-
-      {users.length > 0 ? (
-        <ul className="mt-6 flex flex-col gap-2 border-t border-zinc-200 pt-4 dark:border-zinc-700">
-          {users.map((user) => (
-            <li key={user.id}>
-              <Link
-                href={`/user/${encodeURIComponent(user.username)}`}
-                className="flex items-center gap-2 rounded-lg py-1 no-underline hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                title={user.name}
-              >
-                <UserAvatar name={user.name} image={user.image} size="sm" />
-                <span className="truncate text-sm font-medium">
-                  {user.name}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      ) : null}
     </aside>
   );
 }

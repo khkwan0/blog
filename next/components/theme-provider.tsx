@@ -12,11 +12,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       defaultTheme="dark"
       enableSystem={false}
       disableTransitionOnChange
-      scriptProps={
-        typeof window === "undefined"
-          ? undefined
-          : { type: "application/json" }
-      }
+      scriptProps={{ type: "application/json" }}
     >
       {children}
     </NextThemesProvider>

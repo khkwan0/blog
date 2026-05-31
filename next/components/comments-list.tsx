@@ -1,6 +1,6 @@
 import { CommentActions } from "@/components/comment-actions";
 import { UserProfileLink } from "@/components/user-profile-link";
-import { formatPostTimestamp } from "@/lib/format-datetime";
+import { formatRelativeTime } from "@/lib/format-datetime";
 import { prepareHtmlLinks } from "@/lib/link-html";
 
 export type CommentListItem = {
@@ -10,7 +10,6 @@ export type CommentListItem = {
   totalLikes: number;
   likedByUser: boolean;
   user: { id: string; username: string; name: string };
-  followedByViewer?: boolean;
 };
 
 type CommentsListProps = {
@@ -51,13 +50,9 @@ export function CommentsList({
               <UserProfileLink
                 username={comment.user.username}
                 displayName={comment.user.name}
-                userId={comment.user.id}
-                isSignedIn={isSignedIn}
-                viewerId={viewerId}
-                initialFollowing={comment.followedByViewer ?? false}
               />
               <span aria-hidden>·</span>
-              <span>{formatPostTimestamp(comment.createdAt)}</span>
+              <span>{formatRelativeTime(comment.createdAt)}</span>
             </p>
             <div
               className="post-content mt-2"

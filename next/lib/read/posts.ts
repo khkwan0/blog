@@ -130,6 +130,15 @@ export async function getFeedPosts(ownerIds: string[]) {
   });
 }
 
+export async function getLatestPosts(limit = 50) {
+  return prisma.blogEntry.findMany({
+    where: publicPostWhere,
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: feedPostSelect,
+  });
+}
+
 export async function getPostsByHashtag(hashtag: string) {
   const normalized = hashtag.trim().toLowerCase();
 

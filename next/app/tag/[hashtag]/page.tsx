@@ -8,7 +8,6 @@ import { auth } from "@/lib/auth";
 import { feedPostTargetIds, toFeedPostView } from "@/lib/post-display";
 import { getLikedPostIds, getPostsByHashtag } from "@/lib/read/posts";
 import { getRepostedPostIds } from "@/lib/read/reposts";
-import { followedUserIds } from "@/lib/read/social-graph";
 
 export const dynamic = "force-dynamic";
 
@@ -37,11 +36,6 @@ export default async function HashtagPage({ params }: PageProps) {
         getRepostedPostIds(session.user.id, targetIds),
       ])
     : [new Set<string>(), new Set<string>()];
-
-  const ownerIds = [...new Set(posts.map((post) => post.ownerId))];
-  const followedOwners = session
-    ? await followedUserIds(session.user.id, ownerIds)
-    : new Set<string>();
 
   const feedPosts = posts.map((post) =>
     toFeedPostView(post, {
@@ -81,7 +75,6 @@ export default async function HashtagPage({ params }: PageProps) {
                 post={post}
                 isSignedIn={Boolean(session)}
                 viewerId={session?.user.id}
-                followedOwnerIds={followedOwners}
               />
             ))}
           </ul>

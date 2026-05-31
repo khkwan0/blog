@@ -3,24 +3,21 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { FollowButton } from "@/components/follow-button";
 import { FeedPostCard } from "@/components/feed-post-card";
-import { FollowingPreview } from "@/components/following-preview";
 import { HeaderNav } from "@/components/header-nav";
 import { SiteHeader } from "@/components/site-header";
 import { UserAvatar } from "@/components/user-avatar";
+import { UserIdentityLabels } from "@/components/user-identity-labels";
 import { auth } from "@/lib/auth";
 import { feedPostTargetIds, toFeedPostView } from "@/lib/post-display";
 import { getLikedPostIds, getPostsByOwner } from "@/lib/read/posts";
 import { getRepostedPostIds } from "@/lib/read/reposts";
 import {
   followCounts,
-  followedUserIds,
   isFollowing,
-  listFollowing,
 } from "@/lib/read/social-graph";
 import { getUserContentStats } from "@/lib/read/user-stats";
 import { findUserByUsername } from "@/lib/read/users";
 import { formatDate } from "@/lib/format-datetime";
-import { displayUsername } from "@/lib/format-username";
 
 export const dynamic = "force-dynamic";
 
@@ -42,10 +39,9 @@ export default async function UserProfilePage({ params }: PageProps) {
     notFound();
   }
 
-  const [counts, posts, followingRows, contentStats] = await Promise.all([
+  const [counts, posts, contentStats] = await Promise.all([
     followCounts(profile.id),
     getPostsByOwner(profile.id),
-    listFollowing(profile.id),
     getUserContentStats(profile.id),
   ]);
 
@@ -72,20 +68,6 @@ export default async function UserProfilePage({ params }: PageProps) {
     }),
   );
 
-  const postAuthorIds = [
-    ...new Set(
-      posts.flatMap((post) => {
-        const original = post.repostedFrom ?? post;
-        return [original.ownerId];
-      }),
-    ),
-  ];
-  const followedPostAuthors = session
-    ? await followedUserIds(session.user.id, postAuthorIds)
-    : new Set<string>();
-
-  const followingUsers = followingRows.map((row) => row.following);
-
   return (
     <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
       <SiteHeader>
@@ -102,51 +84,55 @@ export default async function UserProfilePage({ params }: PageProps) {
           ← Back to posts
         </Link>
 
-        <section className="mt-6 flex flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900 sm:flex-row sm:items-center">
-          <UserAvatar
-            name={profile.name}
-            image={profile.image}
-            size="lg"
-          />
-          <div className="flex-1">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {profile.name}
-            </h1>
-            <p className="mt-1 text-sm text-muted">
-              {displayUsername(profile.username)}
-            </p>
-            <p className="mt-2 text-sm text-muted">
-              Joined {formatDate(profile.createdAt)}
-            </p>
-            <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300">
-              <span className="font-medium">{counts.followerCount}</span> followers
-              {" · "}
-              <span className="font-medium">{counts.followingCount}</span> following
-              {" · "}
-              <span className="font-medium">{contentStats.postCount}</span> posts
-              {" · "}
-              <span className="font-medium">{contentStats.totalLikes}</span> likes
-              {" · "}
-              <span className="font-medium">{contentStats.totalReposts}</span> reposts
-              {" · "}
-              <span className="font-medium">{contentStats.totalComments}</span> comments
-            </p>
-            <div className="mt-4">
-              <FollowButton
-                username={profile.username}
-                initialFollowing={viewerFollows}
-                isSignedIn={Boolean(session)}
-                isSelf={isSelf}
-                size="md"
+        <section className="mt-6 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <div className="flex flex-col items-center gap-3">
+              <UserAvatar
+                name={profile.name}
+                image={profile.image}
+                size="lg"
               />
+              {!isSelf ? (
+                <FollowButton
+                  username={profile.username}
+                  initialFollowing={viewerFollows}
+                  isSignedIn={Boolean(session)}
+                  isSelf={isSelf}
+                  size="md"
+                />
+              ) : null}
+            </div>
+            <div className="min-w-0 flex-1">
+              <UserIdentityLabels
+                displayName={profile.name}
+                username={profile.username}
+                className="[&>span:first-child]:text-2xl [&>span:first-child]:font-semibold [&>span:first-child]:tracking-tight [&>span:last-child]:text-sm"
+              />
+              <p className="mt-2 text-sm text-muted">
+                Joined {formatDate(profile.createdAt)}
+              </p>
+              <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300">
+                <span className="font-medium">{counts.followerCount}</span>{" "}
+                followers
+                {" · "}
+                <span className="font-medium">{counts.followingCount}</span>{" "}
+                following
+                {" · "}
+                <span className="font-medium">{contentStats.postCount}</span>{" "}
+                posts
+                {" · "}
+                <span className="font-medium">{contentStats.totalLikes}</span>{" "}
+                likes
+                {" · "}
+                <span className="font-medium">{contentStats.totalReposts}</span>{" "}
+                reposts
+                {" · "}
+                <span className="font-medium">{contentStats.totalComments}</span>{" "}
+                comments
+              </p>
             </div>
           </div>
         </section>
-
-        <FollowingPreview
-          profileUsername={profile.username}
-          users={followingUsers}
-        />
 
         <section className="mt-10">
           <h2 className="text-lg font-semibold tracking-tight">Posts</h2>
@@ -160,7 +146,6 @@ export default async function UserProfilePage({ params }: PageProps) {
                   post={post}
                   isSignedIn={Boolean(session)}
                   viewerId={session?.user.id}
-                  followedOwnerIds={followedPostAuthors}
                 />
               ))}
             </ul>

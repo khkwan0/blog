@@ -15,9 +15,11 @@ export type PublicUser = {
 export const ownerPublicSelect = {
   username: true,
   name: true,
+  image: true,
 } as const;
 
 export type OwnerPublic = {
   username: string;
   name: string;
+  image: string | null;
 };

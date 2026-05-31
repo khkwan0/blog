@@ -14,7 +14,7 @@ export type FeedPostSource = {
   totalReposts: number;
   createdAt: Date;
   ownerId: string;
-  owner: { username: string; name: string };
+  owner: { username: string; name: string; image: string | null };
   repostedFromId?: string | null;
   _count: { comments: number };
   blocks: FeedPostBlock[];
@@ -26,7 +26,7 @@ export type FeedPostSource = {
     totalReposts: number;
     createdAt: Date;
     ownerId: string;
-    owner: { username: string; name: string };
+    owner: { username: string; name: string; image: string | null };
     _count: { comments: number };
     blocks: FeedPostBlock[];
   } | null;
@@ -38,11 +38,11 @@ export type FeedPostView = {
   title: string | null;
   excerpt: string | null;
   createdAt: Date;
-  owner: { username: string; name: string };
+  owner: { username: string; name: string; image: string | null };
   ownerId: string;
   targetId: string;
   targetOwnerId: string;
-  targetOwner: { username: string; name: string };
+  targetOwner: { username: string; name: string; image: string | null };
   targetCreatedAt: Date;
   totalLikes: number;
   totalReposts: number;

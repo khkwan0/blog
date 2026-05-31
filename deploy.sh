@@ -1,1 +1,1 @@
-docker compose --profile prod up -d --build; docker compose logs -f prod
+docker compose down dev;docker compose --profile prod up -d --build; docker compose logs -f prod
