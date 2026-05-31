@@ -67,7 +67,9 @@ export function CommentEditorInner({
   const editorRef = useRef<Editor | null>(null);
 
   const editor = useEditor({
-    extensions: createEditorExtensions(),
+    extensions: createEditorExtensions({
+      placeholder: "Write a comment...",
+    }),
     immediatelyRender: false,
     onCreate: ({ editor: created }) => {
       editorRef.current = created;

@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { FollowButton } from "@/components/follow-button";
-import { displayUsername } from "@/lib/format-username";
-
 type UserProfileLinkProps = {
   username: string;
+  displayName: string;
   userId: string;
   isSignedIn: boolean;
   viewerId?: string | null;
@@ -15,6 +14,7 @@ type UserProfileLinkProps = {
 
 export function UserProfileLink({
   username,
+  displayName,
   userId,
   isSignedIn,
   viewerId,
@@ -30,7 +30,7 @@ export function UserProfileLink({
         onClick={(event) => event.stopPropagation()}
         className="relative z-10 link-accent"
       >
-        {displayUsername(username)}
+        {displayName}
       </Link>
       {showFollow ? (
         <FollowButton

@@ -9,7 +9,7 @@ export type CommentListItem = {
   createdAt: Date;
   totalLikes: number;
   likedByUser: boolean;
-  user: { id: string; name: string };
+  user: { id: string; username: string; name: string };
   followedByViewer?: boolean;
 };
 
@@ -49,7 +49,8 @@ export function CommentsList({
           >
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
               <UserProfileLink
-                username={comment.user.name}
+                username={comment.user.username}
+                displayName={comment.user.name}
                 userId={comment.user.id}
                 isSignedIn={isSignedIn}
                 viewerId={viewerId}

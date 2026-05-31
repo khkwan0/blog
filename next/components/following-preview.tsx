@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { displayUsername } from "@/lib/format-username";
 
 export type FollowingPreviewUser = {
   id: string;
+  username: string;
   name: string;
 };
 
@@ -33,10 +33,10 @@ export function FollowingPreview({
         {users.map((user) => (
           <Link
             key={user.id}
-            href={`/user/${encodeURIComponent(user.name)}`}
+            href={`/user/${encodeURIComponent(user.username)}`}
             className="link-accent text-sm font-medium whitespace-nowrap"
           >
-            {displayUsername(user.name)}
+            {user.name}
           </Link>
         ))}
       </div>

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { publicUserSelect } from "@/lib/user-public";
 
 export async function followedUserIds(viewerId: string, targetIds: string[]) {
   if (targetIds.length === 0) {
@@ -46,7 +47,7 @@ export async function listFollowers(userId: string) {
     select: {
       createdAt: true,
       follower: {
-        select: { id: true, name: true, image: true },
+        select: publicUserSelect,
       },
     },
   });
@@ -59,7 +60,7 @@ export async function listFollowing(userId: string) {
     select: {
       createdAt: true,
       following: {
-        select: { id: true, name: true, image: true },
+        select: publicUserSelect,
       },
     },
   });
@@ -71,7 +72,7 @@ export async function listFollowingAlphabetical(userId: string) {
     orderBy: { following: { name: "asc" } },
     select: {
       following: {
-        select: { id: true, name: true },
+        select: { id: true, username: true, name: true },
       },
     },
   });

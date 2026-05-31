@@ -74,7 +74,8 @@ export default async function Home() {
       <SiteHeader maxWidthClass="max-w-5xl">
         <HeaderNav
           isSignedIn={Boolean(session)}
-          username={session?.user.name ?? null}
+          username={session?.user.username ?? null}
+          displayName={session?.user.name ?? null}
           avatarImage={session?.user.image}
         />
       </SiteHeader>
@@ -84,7 +85,7 @@ export default async function Home() {
           <div className="flex items-start gap-8">
             <div className="w-40 shrink-0">
               <FollowingStrip
-                profileUsername={session.user.name}
+                profileUsername={session.user.username ?? ""}
                 followerCount={myCounts.followerCount}
                 followingCount={myCounts.followingCount}
                 contentStats={contentStats}
@@ -93,7 +94,10 @@ export default async function Home() {
             </div>
 
             <div className="min-w-0 flex-1">
-              <PostEditor />
+              <PostEditor
+                displayName={session.user.name}
+                avatarImage={session.user.image}
+              />
 
               {feedPosts.length === 0 ? (
                 <p className="mt-6 text-muted">

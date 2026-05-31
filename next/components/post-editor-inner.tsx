@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
+import { ComposerMediaBar } from "@/components/composer-media-bar";
 import { EditorImageButton } from "@/components/editor-image-button";
+import { UserAvatar } from "@/components/user-avatar";
 import { createEditorExtensions } from "@/lib/editor-extensions";
 import {
   handleEditorImageFile,
@@ -49,12 +51,16 @@ export type PostEditorInnerProps = {
   postId?: string;
   initialContent?: string;
   cancelHref?: string;
+  displayName?: string;
+  avatarImage?: string | null;
 };
 
 export function PostEditorInner({
   postId,
   initialContent,
   cancelHref,
+  displayName,
+  avatarImage,
 }: PostEditorInnerProps = {}) {
   const isEditing = Boolean(postId);
   const router = useRouter();
@@ -64,7 +70,11 @@ export function PostEditorInner({
   const hydratedRef = useRef(false);
 
   const editor = useEditor({
-    extensions: createEditorExtensions(),
+    extensions: createEditorExtensions(
+      isEditing
+        ? { placeholder: "Write your post..." }
+        : { placeholder: "Share something..." },
+    ),
     immediatelyRender: false,
     content: initialContent || undefined,
     onCreate: ({ editor: created }) => {
@@ -75,7 +85,11 @@ export function PostEditorInner({
     },
     editorProps: {
       attributes: {
-        class: "tiptap-editor min-h-[12rem] px-3 py-2 focus:outline-none",
+        class: `tiptap-editor focus:outline-none ${
+          isEditing
+            ? "min-h-[12rem] px-3 py-2"
+            : "min-h-[4.5rem] px-1 py-2"
+        }`,
       },
       handlePaste: (_view, event) => {
         const file = imageFileFromClipboard(event.clipboardData);
@@ -168,65 +182,107 @@ export function PostEditorInner({
   };
 
   return (
-    <section className="mb-10 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+    <section
+      className={
+        isEditing
+          ? "mb-10 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900"
+          : "mb-10"
+      }
+    >
       {isEditing ? (
         <h2 className="mb-4 text-lg font-semibold tracking-tight">Edit post</h2>
       ) : null}
       <form onSubmit={onSubmit} className="space-y-4">
-        <div>
-          <div className="overflow-hidden rounded-md border border-zinc-300 dark:border-zinc-600">
-            <div className="flex flex-wrap gap-1 border-b border-zinc-200 bg-zinc-50 px-2 py-1.5 dark:border-zinc-700 dark:bg-zinc-950">
-              <ToolbarButton
-                label="Bold"
-                active={editor?.isActive("bold")}
-                disabled={!editor}
-                onClick={() => editor?.chain().focus().toggleBold().run()}
+        <div
+          className={
+            isEditing
+              ? undefined
+              : "flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
+          }
+        >
+          {!isEditing && displayName ? (
+            <Link
+              href="/settings"
+              className="mt-0.5 shrink-0"
+              title="Account settings"
+            >
+              <UserAvatar
+                name={displayName}
+                image={avatarImage}
+                size="md"
               />
-              <ToolbarButton
-                label="Italic"
-                active={editor?.isActive("italic")}
-                disabled={!editor}
-                onClick={() => editor?.chain().focus().toggleItalic().run()}
-              />
-              <ToolbarButton
-                label="H2"
-                active={editor?.isActive("heading", { level: 2 })}
-                disabled={!editor}
-                onClick={() =>
-                  editor?.chain().focus().toggleHeading({ level: 2 }).run()
-                }
-              />
-              <ToolbarButton
-                label="H3"
-                active={editor?.isActive("heading", { level: 3 })}
-                disabled={!editor}
-                onClick={() =>
-                  editor?.chain().focus().toggleHeading({ level: 3 }).run()
-                }
-              />
-              <ToolbarButton
-                label="List"
-                active={editor?.isActive("bulletList")}
-                disabled={!editor}
-                onClick={() =>
-                  editor?.chain().focus().toggleBulletList().run()
-                }
-              />
-              <ToolbarButton
-                label="Quote"
-                active={editor?.isActive("blockquote")}
-                disabled={!editor}
-                onClick={() =>
-                  editor?.chain().focus().toggleBlockquote().run()
-                }
-              />
-              <EditorImageButton
-                editor={editor}
-                disabled={loading}
-                onError={setError}
-              />
+            </Link>
+          ) : null}
+          <div className={isEditing ? undefined : "min-w-0 flex-1"}>
+            <div
+              className={
+                isEditing
+                  ? "overflow-hidden rounded-md border border-zinc-300 dark:border-zinc-600"
+                  : undefined
+              }
+            >
+              {isEditing ? (
+                <div className="flex flex-wrap gap-1 border-b border-zinc-200 bg-zinc-50 px-2 py-1.5 dark:border-zinc-700 dark:bg-zinc-950">
+                  <ToolbarButton
+                    label="Bold"
+                    active={editor?.isActive("bold")}
+                    disabled={!editor}
+                    onClick={() => editor?.chain().focus().toggleBold().run()}
+                  />
+                  <ToolbarButton
+                    label="Italic"
+                    active={editor?.isActive("italic")}
+                    disabled={!editor}
+                    onClick={() => editor?.chain().focus().toggleItalic().run()}
+                  />
+                  <ToolbarButton
+                    label="H2"
+                    active={editor?.isActive("heading", { level: 2 })}
+                    disabled={!editor}
+                    onClick={() =>
+                      editor?.chain().focus().toggleHeading({ level: 2 }).run()
+                    }
+                  />
+                  <ToolbarButton
+                    label="H3"
+                    active={editor?.isActive("heading", { level: 3 })}
+                    disabled={!editor}
+                    onClick={() =>
+                      editor?.chain().focus().toggleHeading({ level: 3 }).run()
+                    }
+                  />
+                  <ToolbarButton
+                    label="List"
+                    active={editor?.isActive("bulletList")}
+                    disabled={!editor}
+                    onClick={() =>
+                      editor?.chain().focus().toggleBulletList().run()
+                    }
+                  />
+                  <ToolbarButton
+                    label="Quote"
+                    active={editor?.isActive("blockquote")}
+                    disabled={!editor}
+                    onClick={() =>
+                      editor?.chain().focus().toggleBlockquote().run()
+                    }
+                  />
+                  <EditorImageButton
+                    editor={editor}
+                    disabled={loading}
+                    onError={setError}
+                  />
+                </div>
+              ) : null}
+              <EditorContent editor={editor} />
+              {!isEditing ? (
+                <ComposerMediaBar
+                  editor={editor}
+                  disabled={loading}
+                  onError={setError}
+                />
+              ) : null}
             </div>
-            <EditorContent editor={editor} />
           </div>
         </div>
 

@@ -1,8 +1,10 @@
+import type { Extensions } from "@tiptap/core";
 import Image from "@tiptap/extension-image";
+import { Placeholder } from "@tiptap/extensions";
 import StarterKit from "@tiptap/starter-kit";
 
-export function createEditorExtensions() {
-  return [
+export function createEditorExtensions(options?: { placeholder?: string }): Extensions {
+  const extensions: Extensions = [
     StarterKit,
     Image.configure({
       inline: false,
@@ -14,4 +16,14 @@ export function createEditorExtensions() {
       },
     }),
   ];
+
+  if (options?.placeholder) {
+    extensions.push(
+      Placeholder.configure({
+        placeholder: options.placeholder,
+      }),
+    );
+  }
+
+  return extensions;
 }

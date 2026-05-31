@@ -9,12 +9,14 @@ import { displayUsername } from "@/lib/format-username";
 type HeaderNavProps = {
   isSignedIn: boolean;
   username: string | null;
+  displayName?: string | null;
   avatarImage?: string | null;
 };
 
 export function HeaderNav({
   isSignedIn,
   username,
+  displayName,
   avatarImage,
 }: HeaderNavProps) {
   const router = useRouter();
@@ -40,22 +42,30 @@ export function HeaderNav({
 
   return (
     <nav className="flex items-center gap-3 text-sm">
-      <Link
-        href={
-          username
-            ? `/user/${encodeURIComponent(username)}`
-            : "/"
-        }
-        className="flex items-center gap-2 text-muted hover:text-foreground"
-        title="Your profile"
-      >
-        <UserAvatar
-          name={username ?? "?"}
-          image={avatarImage}
-          size="sm"
-        />
-        <span>{username ? displayUsername(username) : "…"}</span>
-      </Link>
+      <div className="flex items-center gap-2">
+        <Link
+          href="/settings"
+          className="text-muted hover:text-foreground"
+          title="Account settings"
+        >
+          <UserAvatar
+            name={displayName ?? username ?? "?"}
+            image={avatarImage}
+            size="sm"
+          />
+        </Link>
+        {username ? (
+          <Link
+            href={`/user/${encodeURIComponent(username)}`}
+            className="text-muted hover:text-foreground"
+            title="Your profile"
+          >
+            {displayName ?? displayUsername(username)}
+          </Link>
+        ) : (
+          <span>…</span>
+        )}
+      </div>
       <button
         type="button"
         onClick={onSignOut}

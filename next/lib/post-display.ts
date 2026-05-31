@@ -14,7 +14,7 @@ export type FeedPostSource = {
   totalReposts: number;
   createdAt: Date;
   ownerId: string;
-  owner: { name: string };
+  owner: { username: string; name: string };
   repostedFromId?: string | null;
   _count: { comments: number };
   blocks: FeedPostBlock[];
@@ -26,7 +26,7 @@ export type FeedPostSource = {
     totalReposts: number;
     createdAt: Date;
     ownerId: string;
-    owner: { name: string };
+    owner: { username: string; name: string };
     _count: { comments: number };
     blocks: FeedPostBlock[];
   } | null;
@@ -38,11 +38,11 @@ export type FeedPostView = {
   title: string | null;
   excerpt: string | null;
   createdAt: Date;
-  owner: { name: string };
+  owner: { username: string; name: string };
   ownerId: string;
   targetId: string;
   targetOwnerId: string;
-  targetOwner: { name: string };
+  targetOwner: { username: string; name: string };
   targetCreatedAt: Date;
   totalLikes: number;
   totalReposts: number;
@@ -50,7 +50,7 @@ export type FeedPostView = {
   likedByUser: boolean;
   repostedByUser: boolean;
   isRepost: boolean;
-  reposterName?: string;
+  reposterDisplayName?: string;
   blocks: FeedPostBlock[];
   canDelete: boolean;
   canEdit: boolean;
@@ -85,7 +85,7 @@ export function toFeedPostView(
     likedByUser: options.likedPostIds.has(original.id),
     repostedByUser: options.repostedPostIds.has(original.id),
     isRepost,
-    reposterName: isRepost ? post.owner.name : undefined,
+    reposterDisplayName: isRepost ? post.owner.name : undefined,
     blocks: original.blocks,
     canDelete: options.viewerId === post.ownerId,
     canEdit:

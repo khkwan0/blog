@@ -5,7 +5,6 @@ import { PostDeleteButton } from "@/components/post-delete-button";
 import { PostEditButton } from "@/components/post-edit-button";
 import { UserProfileLink } from "@/components/user-profile-link";
 import { formatPostTimestamp } from "@/lib/format-datetime";
-import { displayUsername } from "@/lib/format-username";
 import { preparePlainTextLinks } from "@/lib/link-html";
 import type { FeedPostView } from "@/lib/post-display";
 
@@ -34,9 +33,9 @@ export function FeedPostCard({
       {post.canEdit ? <PostEditButton postId={post.targetId} /> : null}
       {post.canDelete ? <PostDeleteButton postId={post.entryId} /> : null}
       <article>
-        {post.isRepost && post.reposterName ? (
+        {post.isRepost && post.reposterDisplayName ? (
           <p className="relative z-10 mb-2 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-            {displayUsername(post.reposterName)} reposted
+            {post.reposterDisplayName} reposted
           </p>
         ) : null}
         <div className="relative z-10">
@@ -50,6 +49,11 @@ export function FeedPostCard({
                 <span aria-hidden>·</span>
                 <UserProfileLink
                   username={
+                    post.isRepost
+                      ? post.targetOwner.username
+                      : post.owner.username
+                  }
+                  displayName={
                     post.isRepost ? post.targetOwner.name : post.owner.name
                   }
                   userId={post.isRepost ? post.targetOwnerId : post.ownerId}

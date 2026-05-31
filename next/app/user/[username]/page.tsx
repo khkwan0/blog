@@ -91,7 +91,8 @@ export default async function UserProfilePage({ params }: PageProps) {
       <SiteHeader>
         <HeaderNav
           isSignedIn={Boolean(session)}
-          username={session?.user.name ?? null}
+          username={session?.user.username ?? null}
+          displayName={session?.user.name ?? null}
           avatarImage={session?.user.image}
         />
       </SiteHeader>
@@ -109,9 +110,12 @@ export default async function UserProfilePage({ params }: PageProps) {
           />
           <div className="flex-1">
             <h1 className="text-2xl font-semibold tracking-tight">
-              {displayUsername(profile.name)}
+              {profile.name}
             </h1>
             <p className="mt-1 text-sm text-muted">
+              {displayUsername(profile.username)}
+            </p>
+            <p className="mt-2 text-sm text-muted">
               Joined {formatDate(profile.createdAt)}
             </p>
             <p className="mt-2 text-sm text-zinc-700 dark:text-zinc-300">
@@ -129,7 +133,7 @@ export default async function UserProfilePage({ params }: PageProps) {
             </p>
             <div className="mt-4">
               <FollowButton
-                username={profile.name}
+                username={profile.username}
                 initialFollowing={viewerFollows}
                 isSignedIn={Boolean(session)}
                 isSelf={isSelf}
@@ -140,7 +144,7 @@ export default async function UserProfilePage({ params }: PageProps) {
         </section>
 
         <FollowingPreview
-          profileUsername={profile.name}
+          profileUsername={profile.username}
           users={followingUsers}
         />
 

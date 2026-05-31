@@ -96,7 +96,8 @@ export default async function CommentThreadPage({ params }: PageProps) {
       <SiteHeader>
         <HeaderNav
           isSignedIn={Boolean(session)}
-          username={session?.user.name ?? null}
+          username={session?.user.username ?? null}
+          displayName={session?.user.name ?? null}
           avatarImage={session?.user.image}
         />
       </SiteHeader>
@@ -112,7 +113,8 @@ export default async function CommentThreadPage({ params }: PageProps) {
         <article className="mt-6 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
           <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
             <UserProfileLink
-              username={parentItem.user.name}
+              username={parentItem.user.username}
+              displayName={parentItem.user.name}
               userId={parentItem.user.id}
               isSignedIn={Boolean(session)}
               viewerId={session?.user.id}

@@ -1,5 +1,6 @@
 import { publicPostWhere } from "@/lib/posts";
 import { prisma } from "@/lib/prisma";
+import { ownerPublicSelect } from "@/lib/user-public";
 
 const feedPostSelect = {
   id: true,
@@ -11,9 +12,7 @@ const feedPostSelect = {
   createdAt: true,
   repostedFromId: true,
   owner: {
-    select: {
-      name: true,
-    },
+    select: ownerPublicSelect,
   },
   ownerId: true,
   _count: {
@@ -40,9 +39,7 @@ const feedPostSelect = {
       createdAt: true,
       ownerId: true,
       owner: {
-        select: {
-          name: true,
-        },
+        select: ownerPublicSelect,
       },
       _count: {
         select: {
@@ -72,9 +69,7 @@ const profilePostSelect = {
   repostedFromId: true,
   ownerId: true,
   owner: {
-    select: {
-      name: true,
-    },
+    select: ownerPublicSelect,
   },
   _count: {
     select: {
@@ -100,9 +95,7 @@ const profilePostSelect = {
       createdAt: true,
       ownerId: true,
       owner: {
-        select: {
-          name: true,
-        },
+        select: ownerPublicSelect,
       },
       _count: {
         select: {
@@ -205,9 +198,7 @@ export async function getPublishedPostForPage(blogId: string) {
       totalReposts: true,
       repostedFromId: true,
       owner: {
-        select: {
-          name: true,
-        },
+        select: ownerPublicSelect,
       },
       ownerId: true,
       _count: {
@@ -234,9 +225,7 @@ export async function getPublishedPostForPage(blogId: string) {
           totalReposts: true,
           ownerId: true,
           owner: {
-            select: {
-              name: true,
-            },
+            select: ownerPublicSelect,
           },
           _count: {
             select: {

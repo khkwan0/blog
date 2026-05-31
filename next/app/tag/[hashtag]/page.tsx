@@ -56,7 +56,8 @@ export default async function HashtagPage({ params }: PageProps) {
       <SiteHeader>
         <HeaderNav
           isSignedIn={Boolean(session)}
-          username={session?.user.name ?? null}
+          username={session?.user.username ?? null}
+          displayName={session?.user.name ?? null}
           avatarImage={session?.user.image}
         />
       </SiteHeader>

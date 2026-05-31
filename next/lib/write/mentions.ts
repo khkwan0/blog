@@ -47,11 +47,13 @@ export async function processPostMentions(
   }
 
   const users = await prisma.user.findMany({
-    where: { name: { in: mentionRows.map((row) => row.username) } },
-    select: { id: true, name: true },
+    where: { username: { in: mentionRows.map((row) => row.username) } },
+    select: { id: true, username: true },
   });
 
-  const userIdByUsername = new Map(users.map((user) => [user.name, user.id]));
+  const userIdByUsername = new Map(
+    users.map((user) => [user.username, user.id]),
+  );
 
   const rows = mentionRows.map((mention) => ({
     blogEntryId,

@@ -13,7 +13,6 @@ import { HeaderNav } from "@/components/header-nav";
 import { SiteHeader } from "@/components/site-header";
 import { UserProfileLink } from "@/components/user-profile-link";
 import { auth } from "@/lib/auth";
-import { displayUsername } from "@/lib/format-username";
 import { fetchCommentsForPost, likedCommentIds } from "@/lib/read/comments";
 import {
   getLikedPostIds,
@@ -120,7 +119,8 @@ export default async function BlogPostPage({ params }: PageProps) {
       <SiteHeader>
         <HeaderNav
           isSignedIn={Boolean(session)}
-          username={session?.user.name ?? null}
+          username={session?.user.username ?? null}
+          displayName={session?.user.name ?? null}
           avatarImage={session?.user.image}
         />
       </SiteHeader>
@@ -140,7 +140,7 @@ export default async function BlogPostPage({ params }: PageProps) {
           ) : null}
           {isRepost ? (
             <p className="mb-2 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              {displayUsername(post.owner.name)} reposted
+              {post.owner.name} reposted
             </p>
           ) : null}
           {original.title ? (
@@ -152,7 +152,8 @@ export default async function BlogPostPage({ params }: PageProps) {
             <span>{formatPostTimestamp(post.createdAt)}</span>
             <span aria-hidden>·</span>
             <UserProfileLink
-              username={original.owner.name}
+              username={original.owner.username}
+              displayName={original.owner.name}
               userId={original.ownerId}
               isSignedIn={Boolean(session)}
               viewerId={session?.user.id}

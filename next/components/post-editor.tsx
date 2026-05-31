@@ -17,6 +17,13 @@ const PostEditorInner = dynamic(
   },
 );
 
-export function PostEditor() {
-  return <PostEditorInner />;
+type PostEditorProps = {
+  displayName: string;
+  avatarImage?: string | null;
+};
+
+export function PostEditor({ displayName, avatarImage }: PostEditorProps) {
+  return (
+    <PostEditorInner displayName={displayName} avatarImage={avatarImage} />
+  );
 }

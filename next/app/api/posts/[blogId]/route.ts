@@ -52,7 +52,9 @@ export async function PATCH(request: Request, context: RouteContext) {
   revalidatePath("/");
   revalidatePath(`/blog/${blogId}`);
   revalidatePath(`/blog/${blogId}/edit`);
-  revalidatePath(`/user/${session.user.name}`);
+  if (session.user.username) {
+    revalidatePath(`/user/${session.user.username}`);
+  }
 
   return NextResponse.json({ id: result.id });
 }

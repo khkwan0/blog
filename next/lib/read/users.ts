@@ -1,12 +1,12 @@
 import { prisma } from "@/lib/prisma";
+import { normalizeUsername } from "@/lib/username";
+import { publicUserSelect } from "@/lib/user-public";
 
 export async function findUserByUsername(username: string) {
   return prisma.user.findUnique({
-    where: { name: username.trim().toLowerCase() },
+    where: { username: normalizeUsername(username) },
     select: {
-      id: true,
-      name: true,
-      image: true,
+      ...publicUserSelect,
       createdAt: true,
     },
   });

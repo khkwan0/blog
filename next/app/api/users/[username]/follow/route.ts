@@ -34,7 +34,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
   return NextResponse.json({
     userId: target.id,
-    username: target.name,
+    username: target.username,
     ...counts,
     following,
     isSelf: session?.user.id === target.id,

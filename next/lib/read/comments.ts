@@ -6,7 +6,7 @@ export type CommentRecord = {
   content: string;
   createdAt: Date;
   totalLikes: number;
-  user: { id: string; name: string };
+  user: { id: string; username: string; name: string };
   _count: { replies: number };
 };
 
@@ -25,6 +25,7 @@ export async function fetchCommentsForPost(
       user: {
         select: {
           id: true,
+          username: true,
           name: true,
         },
       },
@@ -87,6 +88,7 @@ export async function getCommentOnPost(blogId: string, commentId: string) {
       user: {
         select: {
           id: true,
+          username: true,
           name: true,
         },
       },

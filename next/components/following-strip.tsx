@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { UserAvatar } from "@/components/user-avatar";
-import { displayUsername } from "@/lib/format-username";
 
 export type FollowingUser = {
   id: string;
+  username: string;
   name: string;
   image: string | null;
 };
@@ -89,13 +89,13 @@ export function FollowingStrip({
           {users.map((user) => (
             <li key={user.id}>
               <Link
-                href={`/user/${encodeURIComponent(user.name)}`}
+                href={`/user/${encodeURIComponent(user.username)}`}
                 className="flex items-center gap-2 rounded-lg py-1 no-underline hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                title={displayUsername(user.name)}
+                title={user.name}
               >
                 <UserAvatar name={user.name} image={user.image} size="sm" />
                 <span className="truncate text-sm font-medium">
-                  {displayUsername(user.name)}
+                  {user.name}
                 </span>
               </Link>
             </li>

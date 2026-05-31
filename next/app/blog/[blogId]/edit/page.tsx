@@ -35,7 +35,8 @@ export default async function EditPostPage({ params }: PageProps) {
       <SiteHeader>
         <HeaderNav
           isSignedIn
-          username={session.user.name}
+          username={session.user.username ?? null}
+          displayName={session.user.name}
           avatarImage={session.user.image}
         />
       </SiteHeader>

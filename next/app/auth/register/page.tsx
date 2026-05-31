@@ -7,11 +7,22 @@ import { AuthDivider } from "@/components/auth-divider";
 import { OAuthButtons } from "@/components/oauth-buttons";
 import { normalizePhoneNumber, resolveSignUpEmail } from "@/lib/auth-emails";
 import { authClient } from "@/lib/auth-client";
+import {
+  normalizeDisplayName,
+  validateDisplayName,
+} from "@/lib/display-name";
+import {
+  normalizeUsername,
+  USERNAME_MAX,
+  USERNAME_MIN,
+  validateUsername,
+} from "@/lib/username";
 
 export default function RegisterPage() {
   const router = useRouter();
   const [oauthProviders, setOauthProviders] = useState<string[]>([]);
   const [username, setUsername] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
@@ -35,14 +46,32 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
 
-    const normalizedUsername = username.trim().toLowerCase();
+    const normalizedUsername = normalizeUsername(username);
     const normalizedPhone = phoneNumber.trim()
       ? normalizePhoneNumber(phoneNumber)
       : "";
     const signUpEmail = resolveSignUpEmail(normalizedUsername, email, phoneNumber);
 
+    const normalizedDisplayName =
+      normalizeDisplayName(displayName) || normalizedUsername;
+
+    const usernameError = validateUsername(normalizedUsername);
+    if (usernameError) {
+      setLoading(false);
+      setError(usernameError);
+      return;
+    }
+
+    const displayNameError = validateDisplayName(normalizedDisplayName);
+    if (displayNameError) {
+      setLoading(false);
+      setError(displayNameError);
+      return;
+    }
+
     const { error: signUpError } = await authClient.signUp.email({
-      name: normalizedUsername,
+      name: normalizedDisplayName,
+      username: normalizedUsername,
       email: signUpEmail,
       password,
     });
@@ -105,7 +134,8 @@ export default function RegisterPage() {
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
       <h1 className="text-2xl font-semibold">Create account</h1>
       <p className="mt-2 text-sm text-muted">
-        Choose a username and password. Email and phone are optional.
+        Pick a unique @username (your account handle) and an optional display name
+        shown on your profile and posts.
       </p>
 
       {awaitingPhoneOtp ? (
@@ -149,18 +179,41 @@ export default function RegisterPage() {
       ) : (
       <form onSubmit={onSubmit} className="mt-8 space-y-4">
         <label className="block">
+          <span className="mb-1 block text-sm font-medium">
+            Display name <span className="text-muted">(optional)</span>
+          </span>
+          <input
+            type="text"
+            maxLength={50}
+            value={displayName}
+            onChange={(event) => setDisplayName(event.target.value)}
+            className="field-input"
+            placeholder="Your name — spaces and emoji OK"
+          />
+          <p className="mt-1 text-xs text-muted">
+            Up to 50 characters. Does not need to be unique.
+          </p>
+        </label>
+
+        <label className="block">
           <span className="mb-1 block text-sm font-medium">Username</span>
           <input
             type="text"
             required
-            minLength={3}
-            maxLength={30}
+            minLength={USERNAME_MIN}
+            maxLength={USERNAME_MAX}
             pattern="[a-zA-Z0-9_.]+"
-            title="Letters, numbers, underscores, and periods only"
+            title="Letters, numbers, underscores, and periods only — no spaces"
             value={username}
-            onChange={(event) => setUsername(event.target.value)}
+            onChange={(event) => setUsername(event.target.value.replace(/\s/g, ""))}
             className="field-input"
+            autoComplete="username"
+            spellCheck={false}
           />
+          <p className="mt-1 text-xs text-muted">
+            Up to {USERNAME_MAX} characters, no spaces. Used for @mentions and your
+            profile URL. Must be unique.
+          </p>
         </label>
 
         <label className="block">

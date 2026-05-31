@@ -4,6 +4,7 @@ import { phoneNumber } from "better-auth/plugins";
 import { syntheticEmailForPhone } from "@/lib/auth-emails";
 import { getSocialProviders } from "@/lib/auth-providers";
 import { prisma } from "@/lib/prisma";
+import { generateUsername, normalizeUsername, validateUsername } from "@/lib/username";
 
 const appUrl =
   process.env.BETTER_AUTH_URL ??
@@ -43,6 +44,45 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+  user: {
+    additionalFields: {
+      username: {
+        type: "string",
+        required: false,
+        unique: true,
+        input: true,
+      },
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          const data = { ...user } as Record<string, unknown>;
+          let username =
+            typeof data.username === "string"
+              ? normalizeUsername(data.username)
+              : "";
+          let name = typeof data.name === "string" ? data.name.trim() : "";
+
+          if (!username) {
+            username = generateUsername(name || "user");
+          }
+
+          const usernameError = validateUsername(username);
+          if (usernameError) {
+            throw new Error(usernameError);
+          }
+
+          if (!name) {
+            name = username;
+          }
+
+          return { data: { ...data, username, name } };
+        },
+      },
+    },
+  },
   socialProviders,
   emailAndPassword: {
     enabled: true,

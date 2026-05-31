@@ -2,6 +2,8 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AvatarEditor } from "@/components/avatar-editor";
+import { DisplayNameEditor } from "@/components/display-name-editor";
+import { UsernameEditor } from "@/components/username-editor";
 import { HeaderNav } from "@/components/header-nav";
 import { SiteHeader } from "@/components/site-header";
 import { UserContentColors } from "@/components/user-content-colors";
@@ -28,7 +30,8 @@ export default async function SettingsPage() {
       <SiteHeader>
         <HeaderNav
           isSignedIn
-          username={session.user.name}
+          username={session.user.username ?? null}
+          displayName={session.user.name}
           avatarImage={session.user.image}
         />
       </SiteHeader>
@@ -37,10 +40,24 @@ export default async function SettingsPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
 
         <section className="mt-8 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="text-lg font-semibold tracking-tight">Name</h2>
+          <div className="mt-6">
+            <DisplayNameEditor initialDisplayName={session.user.name} />
+          </div>
+        </section>
+
+        <section className="mt-8 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+          <h2 className="text-lg font-semibold tracking-tight">Username</h2>
+          <div className="mt-6">
+            <UsernameEditor initialUsername={session.user.username ?? ""} />
+          </div>
+        </section>
+
+        <section className="mt-8 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
           <h2 className="text-lg font-semibold tracking-tight">Avatar</h2>
           <div className="mt-6">
             <AvatarEditor
-              username={session.user.name}
+              username={session.user.username ?? ""}
               initialImage={session.user.image ?? null}
             />
           </div>
