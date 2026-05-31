@@ -111,7 +111,7 @@ export default async function CommentThreadPage({ params }: PageProps) {
         </Link>
 
         <article className="mt-6 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="flex flex-wrap items-start gap-x-2 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
             <UserProfileLink
               username={parentItem.user.username}
               displayName={parentItem.user.name}

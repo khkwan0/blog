@@ -4,6 +4,7 @@ import { PostBlocks } from "@/components/post-blocks";
 import { PostDeleteButton } from "@/components/post-delete-button";
 import { PostEditButton } from "@/components/post-edit-button";
 import { UserProfileLink } from "@/components/user-profile-link";
+import { UserIdentityLabels } from "@/components/user-identity-labels";
 import { formatPostTimestamp } from "@/lib/format-datetime";
 import { preparePlainTextLinks } from "@/lib/link-html";
 import type { FeedPostView } from "@/lib/post-display";
@@ -33,16 +34,20 @@ export function FeedPostCard({
       {post.canEdit ? <PostEditButton postId={post.targetId} /> : null}
       {post.canDelete ? <PostDeleteButton postId={post.entryId} /> : null}
       <article>
-        {post.isRepost && post.reposterDisplayName ? (
-          <p className="relative z-10 mb-2 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-            {post.reposterDisplayName} reposted
+        {post.isRepost && post.reposterDisplayName && post.reposterUsername ? (
+          <p className="relative z-10 mb-2 flex flex-wrap items-baseline gap-x-1 text-sm text-zinc-500 dark:text-zinc-400">
+            <UserIdentityLabels
+              displayName={post.reposterDisplayName}
+              username={post.reposterUsername}
+            />
+            <span>reposted</span>
           </p>
         ) : null}
         <div className="relative z-10">
           {post.title ? (
             <h3 className="text-lg font-semibold">{post.title}</h3>
           ) : null}
-          <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="mt-2 flex flex-wrap items-start gap-x-2 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
             <span>{formatPostTimestamp(post.createdAt)}</span>
             {showOwnerOnRepost || !post.isRepost ? (
               <>

@@ -51,6 +51,7 @@ export type FeedPostView = {
   repostedByUser: boolean;
   isRepost: boolean;
   reposterDisplayName?: string;
+  reposterUsername?: string;
   blocks: FeedPostBlock[];
   canDelete: boolean;
   canEdit: boolean;
@@ -86,6 +87,7 @@ export function toFeedPostView(
     repostedByUser: options.repostedPostIds.has(original.id),
     isRepost,
     reposterDisplayName: isRepost ? post.owner.name : undefined,
+    reposterUsername: isRepost ? post.owner.username : undefined,
     blocks: original.blocks,
     canDelete: options.viewerId === post.ownerId,
     canEdit:

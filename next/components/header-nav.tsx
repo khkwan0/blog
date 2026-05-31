@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { UserAvatar } from "@/components/user-avatar";
+import { UserIdentityLabels } from "@/components/user-identity-labels";
 import { authClient } from "@/lib/auth-client";
-import { displayUsername } from "@/lib/format-username";
 
 type HeaderNavProps = {
   isSignedIn: boolean;
@@ -57,10 +57,13 @@ export function HeaderNav({
         {username ? (
           <Link
             href={`/user/${encodeURIComponent(username)}`}
-            className="text-muted hover:text-foreground"
+            className="text-muted hover:text-foreground no-underline hover:underline"
             title="Your profile"
           >
-            {displayName ?? displayUsername(username)}
+            <UserIdentityLabels
+              displayName={displayName ?? username}
+              username={username}
+            />
           </Link>
         ) : (
           <span>…</span>

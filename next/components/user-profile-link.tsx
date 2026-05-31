@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { FollowButton } from "@/components/follow-button";
+import { UserIdentityLabels } from "@/components/user-identity-labels";
+
 type UserProfileLinkProps = {
   username: string;
   displayName: string;
@@ -28,9 +30,9 @@ export function UserProfileLink({
       <Link
         href={`/user/${encodeURIComponent(username)}`}
         onClick={(event) => event.stopPropagation()}
-        className="relative z-10 link-accent"
+        className="relative z-10 no-underline hover:underline"
       >
-        {displayName}
+        <UserIdentityLabels displayName={displayName} username={username} />
       </Link>
       {showFollow ? (
         <FollowButton

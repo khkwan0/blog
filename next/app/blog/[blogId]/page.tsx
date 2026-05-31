@@ -12,6 +12,7 @@ import { PostHtmlContent } from "@/components/post-html-content";
 import { HeaderNav } from "@/components/header-nav";
 import { SiteHeader } from "@/components/site-header";
 import { UserProfileLink } from "@/components/user-profile-link";
+import { UserIdentityLabels } from "@/components/user-identity-labels";
 import { auth } from "@/lib/auth";
 import { fetchCommentsForPost, likedCommentIds } from "@/lib/read/comments";
 import {
@@ -139,8 +140,12 @@ export default async function BlogPostPage({ params }: PageProps) {
             <PostDeleteButton postId={post.id} redirectTo="/" />
           ) : null}
           {isRepost ? (
-            <p className="mb-2 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-              {post.owner.name} reposted
+            <p className="mb-2 flex flex-wrap items-baseline gap-x-1 text-sm text-zinc-500 dark:text-zinc-400">
+              <UserIdentityLabels
+                displayName={post.owner.name}
+                username={post.owner.username}
+              />
+              <span>reposted</span>
             </p>
           ) : null}
           {original.title ? (
@@ -148,7 +153,7 @@ export default async function BlogPostPage({ params }: PageProps) {
               {original.title}
             </h1>
           ) : null}
-          <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="mt-2 flex flex-wrap items-start gap-x-2 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
             <span>{formatPostTimestamp(post.createdAt)}</span>
             <span aria-hidden>·</span>
             <UserProfileLink

@@ -47,7 +47,7 @@ export function CommentsList({
             key={comment.id}
             className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
           >
-            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="flex flex-wrap items-start gap-x-2 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
               <UserProfileLink
                 username={comment.user.username}
                 displayName={comment.user.name}
