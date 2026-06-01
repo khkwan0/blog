@@ -2,6 +2,7 @@
 
 import { authClient } from "@/lib/auth-client";
 import type { OAuthProviderId } from "@/lib/auth-providers";
+import { OAuthProviderIcon } from "@/components/oauth-provider-icon";
 
 const PROVIDER_LABELS: Record<OAuthProviderId, string> = {
   google: "Google",
@@ -30,6 +31,7 @@ export function OAuthButtons({
     await authClient.signIn.social({
       provider,
       callbackURL,
+      errorCallbackURL: "/auth/login",
     });
   };
 
@@ -45,9 +47,10 @@ export function OAuthButtons({
             key={provider}
             type="button"
             onClick={() => onOAuth(provider)}
-            className="w-full rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-800 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+            className="flex w-full items-center justify-center gap-3 rounded-md border border-zinc-300 bg-white px-4 py-2.5 text-sm font-medium text-zinc-800 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
           >
-            Continue with {PROVIDER_LABELS[provider]}
+            <OAuthProviderIcon provider={provider} />
+            <span>Continue with {PROVIDER_LABELS[provider]}</span>
           </button>
         );
       })}

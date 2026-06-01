@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import { DevBuildBanner } from "@/components/dev-build-banner";
+import { ProfileSetupGate } from "@/components/profile-setup-gate";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { UserContentColorVars } from "@/components/user-content-color-vars";
@@ -48,7 +49,7 @@ export default function RootLayout({
           >
             <ThemeSwitcher />
           </div>
-          {children}
+          <ProfileSetupGate>{children}</ProfileSetupGate>
         </ThemeProvider>
       </body>
     </html>

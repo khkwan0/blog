@@ -74,6 +74,7 @@ export default function RegisterPage() {
       username: normalizedUsername,
       email: signUpEmail,
       password,
+      profileSetupComplete: true,
     });
 
     if (signUpError) {
@@ -134,9 +135,16 @@ export default function RegisterPage() {
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
       <h1 className="text-2xl font-semibold">Create account</h1>
       <p className="mt-2 text-sm text-muted">
-        Pick a unique @username (your account handle) and an optional display name
-        shown on your profile and posts.
+        Continue with Google or Apple, or register with email and choose your
+        @username and display name.
       </p>
+
+      {oauthProviders.length > 0 && !awaitingPhoneOtp ? (
+        <div className="mt-6">
+          <OAuthButtons providers={oauthProviders} callbackURL="/" />
+          <AuthDivider />
+        </div>
+      ) : null}
 
       {awaitingPhoneOtp ? (
         <form onSubmit={onVerifyPhone} className="mt-8 space-y-4">
@@ -177,7 +185,10 @@ export default function RegisterPage() {
           </button>
         </form>
       ) : (
-      <form onSubmit={onSubmit} className="mt-8 space-y-4">
+      <form
+        onSubmit={onSubmit}
+        className={`space-y-4 ${oauthProviders.length > 0 ? "mt-2" : "mt-8"}`}
+      >
         <label className="block">
           <span className="mb-1 block text-sm font-medium">
             Display name <span className="text-muted">(optional)</span>
@@ -267,13 +278,6 @@ export default function RegisterPage() {
         </button>
       </form>
       )}
-
-      {oauthProviders.length > 0 && !awaitingPhoneOtp ? (
-        <>
-          <AuthDivider />
-          <OAuthButtons providers={oauthProviders} callbackURL="/" />
-        </>
-      ) : null}
 
       <p className="mt-6 text-sm text-zinc-700 dark:text-zinc-300">
         Already have an account?{" "}

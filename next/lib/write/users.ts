@@ -1,5 +1,6 @@
 import { normalizeDisplayName, validateDisplayName } from "@/lib/display-name";
 import { prisma } from "@/lib/prisma";
+import { isUsernameAvailable } from "@/lib/username-dictionary";
 import { normalizeUsername, validateUsername } from "@/lib/username";
 
 export async function updateUserDisplayName(userId: string, displayName: string) {
@@ -17,6 +18,49 @@ export async function updateUserDisplayName(userId: string, displayName: string)
       name: true,
       username: true,
     },
+  });
+}
+
+export async function completeUserProfileSetup(
+  userId: string,
+  displayName: string,
+  nextUsername: string,
+) {
+  const normalizedName = normalizeDisplayName(displayName);
+  const nameError = validateDisplayName(normalizedName);
+  if (nameError) {
+    throw new Error(nameError);
+  }
+
+  const availability = await isUsernameAvailable(nextUsername, userId);
+  if (!availability.available) {
+    throw new Error(availability.error ?? "Username is not available.");
+  }
+
+  const normalized = availability.username;
+
+  return prisma.$transaction(async (tx) => {
+    await tx.blogEntryMention.updateMany({
+      where: { userId },
+      data: {
+        username: normalized,
+        display: `@${normalized}`,
+      },
+    });
+
+    return tx.user.update({
+      where: { id: userId },
+      data: {
+        name: normalizedName,
+        username: normalized,
+        profileSetupComplete: true,
+      },
+      select: {
+        name: true,
+        username: true,
+        profileSetupComplete: true,
+      },
+    });
   });
 }
 

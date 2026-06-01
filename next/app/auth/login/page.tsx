@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, Suspense, useCallback, useEffect, useState } from "react";
+import { AuthOAuthError } from "@/components/auth-oauth-error";
 import { AuthDivider } from "@/components/auth-divider";
 import { OAuthButtons } from "@/components/oauth-buttons";
 import { normalizePhoneNumber } from "@/lib/auth-emails";
@@ -11,7 +12,7 @@ import { signInWithIdentifier } from "@/lib/sign-in";
 
 type AuthMode = "password" | "phone";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
   const [mode, setMode] = useState<AuthMode>("password");
   const [oauthProviders, setOauthProviders] = useState<string[]>([]);
@@ -22,6 +23,10 @@ export default function LoginPage() {
   const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const onOAuthError = useCallback((message: string) => {
+    setError(message);
+  }, []);
 
   useEffect(() => {
     fetch("/api/auth/config")
@@ -101,12 +106,22 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
+      <Suspense fallback={null}>
+        <AuthOAuthError onMessage={onOAuthError} />
+      </Suspense>
       <h1 className="text-2xl font-semibold">Sign in</h1>
       <p className="mt-2 text-sm text-muted">
-        Use email, username, phone, or a connected account.
+        Use a connected account, or sign in with email, username, or phone.
       </p>
 
-      <div className="mt-6 flex gap-2 text-sm">
+      {oauthProviders.length > 0 ? (
+        <div className="mt-6">
+          <OAuthButtons providers={oauthProviders} />
+          <AuthDivider />
+        </div>
+      ) : null}
+
+      <div className={`flex gap-2 text-sm ${oauthProviders.length > 0 ? "mt-2" : "mt-6"}`}>
         <button
           type="button"
           onClick={() => setMode("password")}
@@ -217,13 +232,6 @@ export default function LoginPage() {
         </form>
       )}
 
-      {oauthProviders.length > 0 ? (
-        <>
-          <AuthDivider />
-          <OAuthButtons providers={oauthProviders} />
-        </>
-      ) : null}
-
       <div className="mt-6 flex items-center justify-between text-sm">
         <Link href="/auth/register" className="link-accent">
           Create account
@@ -234,4 +242,8 @@ export default function LoginPage() {
       </div>
     </main>
   );
+}
+
+export default function LoginPage() {
+  return <LoginPageContent />;
 }

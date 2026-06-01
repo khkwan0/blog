@@ -1,10 +1,14 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { phoneNumber } from "better-auth/plugins";
-import { syntheticEmailForPhone } from "@/lib/auth-emails";
-import { getSocialProviders } from "@/lib/auth-providers";
+import { isSyntheticEmail, syntheticEmailForPhone } from "@/lib/auth-emails";
+import {
+  getEnabledOAuthProviderIds,
+  getSocialProviders,
+} from "@/lib/auth-providers";
 import { prisma } from "@/lib/prisma";
-import { generateUsername, normalizeUsername, validateUsername } from "@/lib/username";
+import { generateUniqueDictionaryUsername } from "@/lib/username-dictionary";
+import { normalizeUsername, validateUsername } from "@/lib/username";
 
 const appUrl =
   process.env.BETTER_AUTH_URL ??
@@ -37,6 +41,7 @@ function trustedOrigins() {
 }
 
 const socialProviders = await getSocialProviders();
+const oauthProviderIds = getEnabledOAuthProviderIds();
 
 export const auth = betterAuth({
   baseURL: appUrl,
@@ -46,11 +51,21 @@ export const auth = betterAuth({
     provider: "postgresql",
   }),
   user: {
+    changeEmail: {
+      enabled: true,
+      updateEmailWithoutVerification: true,
+    },
     additionalFields: {
       username: {
         type: "string",
         required: false,
         unique: true,
+        input: true,
+      },
+      profileSetupComplete: {
+        type: "boolean",
+        required: false,
+        defaultValue: true,
         input: true,
       },
     },
@@ -60,14 +75,20 @@ export const auth = betterAuth({
       create: {
         before: async (user) => {
           const data = { ...user } as Record<string, unknown>;
-          let username =
-            typeof data.username === "string"
-              ? normalizeUsername(data.username)
-              : "";
+          const rawUsername =
+            typeof data.username === "string" ? data.username.trim() : "";
+          const explicitUsername = rawUsername
+            ? normalizeUsername(rawUsername)
+            : "";
           let name = typeof data.name === "string" ? data.name.trim() : "";
 
+          const profileSetupComplete =
+            data.profileSetupComplete === true ||
+            Boolean(explicitUsername && validateUsername(explicitUsername) === null);
+
+          let username = explicitUsername;
           if (!username) {
-            username = generateUsername(name || "user");
+            username = await generateUniqueDictionaryUsername();
           }
 
           const usernameError = validateUsername(username);
@@ -79,12 +100,37 @@ export const auth = betterAuth({
             name = username;
           }
 
-          return { data: { ...data, username, name } };
+          const email =
+            typeof data.email === "string" ? data.email.toLowerCase() : "";
+          const emailVerified =
+            typeof data.emailVerified === "boolean"
+              ? data.emailVerified
+              : Boolean(email && !isSyntheticEmail(email));
+
+          return {
+            data: {
+              ...data,
+              username,
+              name,
+              email,
+              emailVerified,
+              profileSetupComplete,
+            },
+          };
         },
       },
     },
   },
   socialProviders,
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: oauthProviderIds,
+      // OAuth providers verify email ownership; allow linking to an existing
+      // local account with the same address even if local email was never verified.
+      requireLocalEmailVerified: false,
+    },
+  },
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url }) => {

@@ -17,7 +17,8 @@ model User {
   emailVerified       Boolean     @default(false)
   phoneNumber         String?     @unique
   phoneNumberVerified Boolean     @default(false)
-  image         String?
+  image                 String?
+  profileSetupComplete  Boolean     @default(true)
   mentionColor  String?
   hashtagColor  String?
   role          Int         @default(0)

@@ -1,0 +1,1 @@
+ALTER TABLE "User" ADD COLUMN "profileSetupComplete" BOOLEAN NOT NULL DEFAULT true;
