@@ -97,6 +97,12 @@ function ShareIcon() {
 const actionClass =
   "rounded-md p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-emerald-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-emerald-400";
 
+type ShareTarget = {
+  id: string;
+  label: string;
+  href: string;
+};
+
 export function PostActions({
   postId,
   postTitle,
@@ -116,6 +122,7 @@ export function PostActions({
   const [loading, setLoading] = useState(false);
   const [repostLoading, setRepostLoading] = useState(false);
   const [shared, setShared] = useState(false);
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
 
   const onLike = async () => {
     if (!isSignedIn) {
@@ -180,6 +187,56 @@ export function PostActions({
     router.refresh();
   };
 
+  const postUrl =
+    typeof window === "undefined"
+      ? `/post/${postId}`
+      : `${window.location.origin}/post/${postId}`;
+  const shareTitle = postTitle ?? "shitsue";
+  const shareText = postTitle ? `${postTitle}` : "Check out this post on shitsue";
+  const shareTargets: ShareTarget[] = [
+    {
+      id: "x",
+      label: "X",
+      href: `https://x.com/intent/tweet?text=${encodeURIComponent(
+        `${shareText} ${postUrl}`,
+      )}`,
+    },
+    {
+      id: "facebook",
+      label: "Facebook",
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`,
+    },
+    {
+      id: "linkedin",
+      label: "LinkedIn",
+      href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
+        postUrl,
+      )}`,
+    },
+    {
+      id: "reddit",
+      label: "Reddit",
+      href: `https://www.reddit.com/submit?url=${encodeURIComponent(
+        postUrl,
+      )}&title=${encodeURIComponent(shareTitle)}`,
+    },
+    {
+      id: "whatsapp",
+      label: "WhatsApp",
+      href: `https://wa.me/?text=${encodeURIComponent(`${shareText} ${postUrl}`)}`,
+    },
+  ];
+
+  const onCopyShareLink = async () => {
+    try {
+      await navigator.clipboard.writeText(postUrl);
+      setShared(true);
+      setShareMenuOpen(false);
+    } catch {
+      // Clipboard denied.
+    }
+  };
+
   const onShare = async () => {
     const url = `${window.location.origin}/post/${postId}`;
     const shareData = {
@@ -194,8 +251,7 @@ export function PostActions({
         return;
       }
 
-      await navigator.clipboard.writeText(url);
-      setShared(true);
+      setShareMenuOpen((open) => !open);
     } catch {
       // User cancelled share or clipboard denied.
     }
@@ -252,15 +308,40 @@ export function PostActions({
         </span>
       )}
 
-      <button
-        type="button"
-        onClick={() => void onShare()}
-        className={`${actionClass}${shared ? " text-emerald-700 dark:text-emerald-400" : ""}`}
-        aria-label="Share post"
-        title={shared ? "Link shared" : "Share"}
-      >
-        <ShareIcon />
-      </button>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => void onShare()}
+          className={`${actionClass}${shared ? " text-emerald-700 dark:text-emerald-400" : ""}`}
+          aria-label="Share post"
+          title={shared ? "Link shared" : "Share"}
+        >
+          <ShareIcon />
+        </button>
+        {shareMenuOpen ? (
+          <div className="absolute right-0 top-full z-20 mt-2 w-44 rounded-md border border-zinc-200 bg-white p-1.5 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+            {shareTargets.map((target) => (
+              <a
+                key={target.id}
+                href={target.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded px-2 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                onClick={() => setShareMenuOpen(false)}
+              >
+                Share on {target.label}
+              </a>
+            ))}
+            <button
+              type="button"
+              onClick={() => void onCopyShareLink()}
+              className="mt-1 block w-full rounded px-2 py-1.5 text-left text-sm text-zinc-700 hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            >
+              Copy link
+            </button>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
