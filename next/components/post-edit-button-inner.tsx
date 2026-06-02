@@ -33,7 +33,7 @@ export function PostEditButtonInner({ postId }: PostEditButtonProps) {
 
   return (
     <Link
-      href={`/blog/${postId}/edit`}
+      href={`/post/${postId}/edit`}
       onClick={onClick}
       aria-label="Edit post"
       title="Edit post"

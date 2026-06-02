@@ -27,7 +27,7 @@ export function PostEditForm({ postId, initialContent }: PostEditFormProps) {
     <PostEditorInner
       postId={postId}
       initialContent={initialContent}
-      cancelHref={`/blog/${postId}`}
+      cancelHref={`/post/${postId}`}
     />
   );
 }

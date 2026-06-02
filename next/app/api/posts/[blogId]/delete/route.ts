@@ -47,6 +47,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   revalidatePath("/");
   revalidatePath(`/blog/${blogId}`);
+  revalidatePath(`/post/${blogId}`);
 
   return NextResponse.json({ ok: true });
 }

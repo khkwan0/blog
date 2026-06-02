@@ -181,7 +181,7 @@ export function PostActions({
   };
 
   const onShare = async () => {
-    const url = `${window.location.origin}/blog/${postId}`;
+    const url = `${window.location.origin}/post/${postId}`;
     const shareData = {
       title: postTitle ?? "shitsue",
       url,
@@ -204,7 +204,7 @@ export function PostActions({
   return (
     <div className="relative z-10 mt-4 flex items-center gap-1 border-t border-zinc-200 pt-3 dark:border-zinc-800">
       <Link
-        href={`/blog/${postId}`}
+        href={`/post/${postId}`}
         className={`${actionClass} flex items-center gap-1.5`}
         aria-label={`View post (${commentCount} comments)`}
         title="View post"

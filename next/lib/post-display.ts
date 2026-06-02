@@ -70,7 +70,7 @@ export function toFeedPostView(
 
   return {
     entryId: post.id,
-    href: isRepost ? `/blog/${original.id}` : `/blog/${post.id}`,
+    href: isRepost ? `/post/${original.id}` : `/post/${post.id}`,
     title: original.title,
     excerpt: original.excerpt,
     createdAt: post.createdAt,

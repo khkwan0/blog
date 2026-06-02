@@ -118,7 +118,7 @@ export function CommentActionsInner({
   };
 
   const onShare = async () => {
-    const url = `${window.location.origin}/blog/${blogId}/comment/${commentId}`;
+    const url = `${window.location.origin}/post/${blogId}/comment/${commentId}`;
 
     try {
       if (navigator.share) {
@@ -140,7 +140,7 @@ export function CommentActionsInner({
   return (
     <div className="mt-3 flex items-center gap-1 border-t border-zinc-200 pt-3 dark:border-zinc-800">
       <Link
-        href={`/blog/${blogId}/comment/${commentId}`}
+        href={`/post/${blogId}/comment/${commentId}`}
         className={actionClass}
         aria-label="Reply to comment"
         title="Reply"

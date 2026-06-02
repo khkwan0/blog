@@ -43,7 +43,7 @@ export default async function EditPostPage({ params }: PageProps) {
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
         <Link
-          href={`/blog/${post.id}`}
+          href={`/post/${post.id}`}
           className="text-sm text-muted link-accent"
         >
           ← Back to post

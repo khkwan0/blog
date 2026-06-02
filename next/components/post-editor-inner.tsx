@@ -172,7 +172,7 @@ export function PostEditorInner({
     }
 
     if (isEditing) {
-      router.push(`/blog/${postId}`);
+      router.push(`/post/${postId}`);
       router.refresh();
       return;
     }

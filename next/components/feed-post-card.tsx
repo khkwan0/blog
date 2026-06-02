@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { PostActions } from "@/components/post-actions";
 import { PostAuthorHeader } from "@/components/post-author-header";
 import { PostBlocks } from "@/components/post-blocks";
@@ -22,6 +25,7 @@ export function FeedPostCard({
   viewerId,
   showOwnerOnRepost = true,
 }: FeedPostCardProps) {
+  const router = useRouter();
   const author = post.isRepost ? post.targetOwner : post.owner;
   const htmlContent = post.blocks
     .filter((block) => block.format === "HTML")
@@ -29,9 +33,33 @@ export function FeedPostCard({
     .join("");
   const videoBlocks = post.blocks.filter((block) => block.format === "VIDEO");
   const hasImages = /<img\b/i.test(htmlContent);
+  const navigateToPost = () => {
+    router.push(post.href);
+  };
 
   return (
-    <li className="relative rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+    <li
+      className="relative cursor-pointer rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900"
+      role="link"
+      tabIndex={0}
+      onClick={(event) => {
+        const target = event.target as HTMLElement;
+        if (
+          target.closest(
+            "a,button,input,textarea,select,details,summary,[role='button']",
+          )
+        ) {
+          return;
+        }
+        navigateToPost();
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          navigateToPost();
+        }
+      }}
+    >
       {post.canEdit ? <PostEditButton postId={post.targetId} /> : null}
       {post.canDelete ? <PostDeleteButton postId={post.entryId} /> : null}
       <article>
