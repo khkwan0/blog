@@ -1,5 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { publicUserSelect } from "@/lib/user-public";
+import { publicUserSelect, type PublicUser } from "@/lib/user-public";
+
+export type FollowingListRow = {
+  createdAt: Date;
+  following: PublicUser;
+};
 
 export async function followedUserIds(viewerId: string, targetIds: string[]) {
   if (targetIds.length === 0) {
@@ -53,7 +58,9 @@ export async function listFollowers(userId: string) {
   });
 }
 
-export async function listFollowing(userId: string) {
+export async function listFollowing(
+  userId: string,
+): Promise<FollowingListRow[]> {
   return prisma.socialGraph.findMany({
     where: { followerId: userId },
     orderBy: { createdAt: "desc" },

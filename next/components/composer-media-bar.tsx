@@ -3,6 +3,7 @@
 import type { Editor } from "@tiptap/react";
 import type { ReactNode } from "react";
 import { EditorImageButton } from "@/components/editor-image-button";
+import { EditorVideoButton } from "@/components/editor-video-button";
 
 type ComposerMediaBarProps = {
   editor: Editor | null;
@@ -115,14 +116,13 @@ export function ComposerMediaBar({
         variant="icon"
         icon={<ImageIcon />}
       />
-      <MediaIconButton
-        label="Video"
-        title="Upload a video or paste a video link in your post"
-        disabled={disabled || !editor}
-        onClick={focusEditor}
-      >
-        <VideoIcon />
-      </MediaIconButton>
+      <EditorVideoButton
+        editor={editor}
+        disabled={disabled}
+        onError={onError}
+        variant="icon"
+        icon={<VideoIcon />}
+      />
       <MediaIconButton
         label="File"
         title="Upload a file or paste a file link in your post"

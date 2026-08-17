@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -6,6 +7,7 @@ import { HeaderNav } from "@/components/header-nav";
 import { SiteHeader } from "@/components/site-header";
 import { auth } from "@/lib/auth";
 import { feedPostTargetIds, toFeedPostView } from "@/lib/post-display";
+import { createPageMetadata } from "@/lib/metadata";
 import { getLikedPostIds, getPostsByHashtag } from "@/lib/read/posts";
 import { getRepostedPostIds } from "@/lib/read/reposts";
 
@@ -14,6 +16,21 @@ export const dynamic = "force-dynamic";
 type PageProps = {
   params: Promise<{ hashtag: string }>;
 };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { hashtag: rawHashtag } = await params;
+  const hashtag = decodeURIComponent(rawHashtag).trim().toLowerCase();
+
+  if (!hashtag) {
+    return { title: "Hashtag not found" };
+  }
+
+  return createPageMetadata({
+    title: `#${hashtag}`,
+    description: `Posts tagged #${hashtag} on shitsue.`,
+    path: `/tag/${hashtag}`,
+  });
+}
 
 export default async function HashtagPage({ params }: PageProps) {
   const { hashtag: rawHashtag } = await params;
@@ -46,7 +63,7 @@ export default async function HashtagPage({ params }: PageProps) {
   );
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="page-shell">
       <SiteHeader>
         <HeaderNav
           isSignedIn={Boolean(session)}
@@ -56,19 +73,19 @@ export default async function HashtagPage({ params }: PageProps) {
         />
       </SiteHeader>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
+      <main className="page-main max-w-3xl">
         <Link href="/" className="text-sm text-muted link-accent">
           ← Back to posts
         </Link>
 
-        <h1 className="mt-4 text-2xl font-semibold tracking-tight">
+        <h1 className="mt-4 break-all text-2xl font-semibold tracking-tight">
           <span className="text-violet-700 dark:text-violet-400">#{hashtag}</span>
         </h1>
 
         {feedPosts.length === 0 ? (
           <p className="mt-6 text-muted">No posts with this hashtag yet.</p>
         ) : (
-          <ul className="mt-6 space-y-6">
+          <ul className="mt-6 space-y-4 sm:space-y-6">
             {feedPosts.map((post) => (
               <FeedPostCard
                 key={post.entryId}

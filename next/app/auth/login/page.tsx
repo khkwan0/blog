@@ -105,7 +105,7 @@ function LoginPageContent() {
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
+    <main className="page-auth">
       <Suspense fallback={null}>
         <AuthOAuthError onMessage={onOAuthError} />
       </Suspense>
@@ -232,7 +232,7 @@ function LoginPageContent() {
         </form>
       )}
 
-      <div className="mt-6 flex items-center justify-between text-sm">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-2 text-sm">
         <Link href="/auth/register" className="link-accent">
           Create account
         </Link>

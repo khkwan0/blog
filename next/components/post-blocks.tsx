@@ -89,7 +89,7 @@ function EmbeddedVideoPlayer({
 
 export function PostBlocks({ blocks }: PostBlocksProps) {
   return (
-    <div className="mt-4 space-y-4">
+    <div className="mt-4 min-w-0 space-y-4">
       {blocks.map((block) => {
         if (block.format === "HTML") {
           return (
@@ -116,7 +116,7 @@ export function PostBlocks({ blocks }: PostBlocksProps) {
                 controls
                 playsInline
                 preload="metadata"
-                className="w-full rounded-lg bg-black"
+                className="w-full max-w-full rounded-lg bg-black"
                 src={localVideoUrl(video.localPath)}
               />
             );

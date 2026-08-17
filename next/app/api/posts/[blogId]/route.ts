@@ -50,6 +50,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   revalidatePath("/");
+  revalidatePath("/sitemap.xml");
   revalidatePath(`/blog/${blogId}`);
   revalidatePath(`/blog/${blogId}/edit`);
   revalidatePath(`/post/${blogId}`);

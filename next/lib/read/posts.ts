@@ -1,12 +1,18 @@
-import { publicPostWhere } from "@/lib/posts";
+import { activeCommentWhere } from "@/lib/comments";
+import { publicPostWhere, viewablePostWhere } from "@/lib/posts";
 import { prisma } from "@/lib/prisma";
 import { ownerPublicSelect } from "@/lib/user-public";
+
+const activeCommentCountSelect = {
+  comments: { where: activeCommentWhere },
+} as const;
 
 const feedPostSelect = {
   id: true,
   title: true,
   slug: true,
   excerpt: true,
+  status: true,
   totalLikes: true,
   totalReposts: true,
   createdAt: true,
@@ -17,7 +23,7 @@ const feedPostSelect = {
   ownerId: true,
   _count: {
     select: {
-      comments: true,
+      ...activeCommentCountSelect,
     },
   },
   blocks: {
@@ -34,6 +40,7 @@ const feedPostSelect = {
       id: true,
       title: true,
       excerpt: true,
+      status: true,
       totalLikes: true,
       totalReposts: true,
       createdAt: true,
@@ -43,7 +50,7 @@ const feedPostSelect = {
       },
       _count: {
         select: {
-          comments: true,
+          ...activeCommentCountSelect,
         },
       },
       blocks: {
@@ -63,6 +70,7 @@ const profilePostSelect = {
   id: true,
   title: true,
   excerpt: true,
+  status: true,
   totalLikes: true,
   totalReposts: true,
   createdAt: true,
@@ -73,7 +81,7 @@ const profilePostSelect = {
   },
   _count: {
     select: {
-      comments: true,
+      ...activeCommentCountSelect,
     },
   },
   blocks: {
@@ -90,6 +98,7 @@ const profilePostSelect = {
       id: true,
       title: true,
       excerpt: true,
+      status: true,
       totalLikes: true,
       totalReposts: true,
       createdAt: true,
@@ -99,7 +108,7 @@ const profilePostSelect = {
       },
       _count: {
         select: {
-          comments: true,
+          ...activeCommentCountSelect,
         },
       },
       blocks: {
@@ -159,7 +168,7 @@ export async function getPostsByHashtag(hashtag: string) {
 
 export async function getPostsByOwner(ownerId: string) {
   return prisma.blogEntry.findMany({
-    where: { ownerId, ...publicPostWhere },
+    where: { ownerId, ...viewablePostWhere },
     orderBy: { createdAt: "desc" },
     select: profilePostSelect,
   });
@@ -189,20 +198,23 @@ export async function getLikedPostIds(userId: string, postIds: string[]) {
 
 export async function getPublishedPostMetadata(blogId: string) {
   return prisma.blogEntry.findFirst({
-    where: { id: blogId, ...publicPostWhere },
-    select: { title: true, excerpt: true },
+    where: { id: blogId, ...viewablePostWhere },
+    select: { title: true, excerpt: true, status: true },
   });
 }
 
 export async function getPublishedPostForPage(blogId: string) {
   return prisma.blogEntry.findFirst({
-    where: { id: blogId, ...publicPostWhere },
+    where: { id: blogId, ...viewablePostWhere },
     select: {
       id: true,
       title: true,
       slug: true,
       excerpt: true,
+      status: true,
       createdAt: true,
+      modifiedAt: true,
+      publishedAt: true,
       totalLikes: true,
       totalReposts: true,
       repostedFromId: true,
@@ -212,7 +224,7 @@ export async function getPublishedPostForPage(blogId: string) {
       ownerId: true,
       _count: {
         select: {
-          comments: true,
+          ...activeCommentCountSelect,
         },
       },
       blocks: {
@@ -229,7 +241,10 @@ export async function getPublishedPostForPage(blogId: string) {
           id: true,
           title: true,
           excerpt: true,
+          status: true,
           createdAt: true,
+          modifiedAt: true,
+          publishedAt: true,
           totalLikes: true,
           totalReposts: true,
           ownerId: true,
@@ -238,7 +253,7 @@ export async function getPublishedPostForPage(blogId: string) {
           },
           _count: {
             select: {
-              comments: true,
+              ...activeCommentCountSelect,
             },
           },
           blocks: {
@@ -258,7 +273,7 @@ export async function getPublishedPostForPage(blogId: string) {
 
 export async function getPublishedPostSummary(blogId: string) {
   return prisma.blogEntry.findFirst({
-    where: { id: blogId, ...publicPostWhere },
+    where: { id: blogId, ...viewablePostWhere },
     select: {
       id: true,
       title: true,

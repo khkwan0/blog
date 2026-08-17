@@ -18,6 +18,7 @@ COPY prisma ./prisma
 
 ENV DATABASE_URL="postgresql://blog:blog@postgres:5432/blog_prod"
 ENV BETTER_AUTH_URL="http://localhost:3000"
+ENV BETTER_AUTH_SECRET="build-time-placeholder-not-used-at-runtime"
 RUN bunx prisma generate --config=./prisma.config.js
 
 ENV NEXT_TELEMETRY_DISABLED=1

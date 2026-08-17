@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -5,9 +6,15 @@ import { PostEditForm } from "@/components/post-edit-form";
 import { HeaderNav } from "@/components/header-nav";
 import { SiteHeader } from "@/components/site-header";
 import { auth } from "@/lib/auth";
+import { privatePageMetadata } from "@/lib/metadata";
 import { getPostForEdit } from "@/lib/read/posts";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Edit post",
+  ...privatePageMetadata,
+};
 
 type PageProps = {
   params: Promise<{ blogId: string }>;
@@ -31,7 +38,7 @@ export default async function EditPostPage({ params }: PageProps) {
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="page-shell">
       <SiteHeader>
         <HeaderNav
           isSignedIn
@@ -41,7 +48,7 @@ export default async function EditPostPage({ params }: PageProps) {
         />
       </SiteHeader>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
+      <main className="page-main max-w-3xl">
         <Link
           href={`/post/${post.id}`}
           className="text-sm text-muted link-accent"

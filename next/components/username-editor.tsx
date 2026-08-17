@@ -73,7 +73,7 @@ export function UsernameEditor({ initialUsername }: UsernameEditorProps) {
         />
       </label>
       {savedUsername ? (
-        <p className="text-sm text-muted">
+        <p className="break-all text-sm text-muted">
           Profile URL: /user/{encodeURIComponent(savedUsername)} (
           {displayUsername(savedUsername)})
         </p>

@@ -8,6 +8,7 @@ type PostAuthorHeaderProps = {
   displayName: string;
   image?: string | null;
   createdAt: Date;
+  className?: string;
 };
 
 export function PostAuthorHeader({
@@ -15,11 +16,12 @@ export function PostAuthorHeader({
   displayName,
   image,
   createdAt,
+  className = "",
 }: PostAuthorHeaderProps) {
   const profileHref = `/user/${encodeURIComponent(username)}`;
 
   return (
-    <div className="flex items-center gap-3">
+    <div className={`flex min-w-0 items-center gap-3 ${className}`}>
       <Link
         href={profileHref}
         className="shrink-0 no-underline hover:underline"

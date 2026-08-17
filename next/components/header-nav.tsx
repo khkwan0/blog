@@ -29,7 +29,7 @@ export function HeaderNav({
 
   if (!isSignedIn) {
     return (
-      <nav className="flex gap-3 text-sm">
+      <nav className="flex shrink-0 gap-3 text-sm">
         <Link href="/auth/login" className="link-accent">
           Sign in
         </Link>
@@ -41,11 +41,11 @@ export function HeaderNav({
   }
 
   return (
-    <nav className="flex items-center gap-3 text-sm">
-      <div className="flex items-center gap-2">
+    <nav className="flex min-w-0 items-center gap-2 text-sm sm:gap-3">
+      <div className="flex min-w-0 items-center gap-2">
         <Link
           href="/settings"
-          className="text-muted hover:text-foreground"
+          className="shrink-0 text-muted hover:text-foreground"
           title="Account settings"
         >
           <UserAvatar
@@ -57,7 +57,7 @@ export function HeaderNav({
         {username ? (
           <Link
             href={`/user/${encodeURIComponent(username)}`}
-            className="text-muted hover:text-foreground no-underline hover:underline"
+            className="min-w-0 text-muted no-underline hover:text-foreground hover:underline"
             title="Your profile"
           >
             <UserIdentityLabels
@@ -72,7 +72,7 @@ export function HeaderNav({
       <button
         type="button"
         onClick={onSignOut}
-        className="link-accent"
+        className="link-accent shrink-0"
       >
         Sign out
       </button>

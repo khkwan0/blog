@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { DELETE_SECTION } from "@/lib/api-section";
 
 type CommentActionsInnerProps = {
   blogId: string;
@@ -10,6 +11,10 @@ type CommentActionsInnerProps = {
   totalLikes: number;
   likedByUser: boolean;
   isSignedIn: boolean;
+  isDeleted?: boolean;
+  canDelete?: boolean;
+  replyOpen?: boolean;
+  onReply?: () => void;
 };
 
 function ChatIcon() {
@@ -69,8 +74,33 @@ function ShareIcon() {
   );
 }
 
+function TrashIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
+      <path d="M3 6h18" />
+      <path d="M8 6V4h8v2" />
+      <path d="M19 6l-1 14H6L5 6" />
+      <path d="M10 11v6" />
+      <path d="M14 11v6" />
+    </svg>
+  );
+}
+
 const actionClass =
   "rounded-md p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-emerald-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-emerald-400";
+
+const deleteActionClass =
+  "rounded-md p-2 text-zinc-500 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:text-zinc-400 dark:hover:bg-red-950/40 dark:hover:text-red-400";
 
 export function CommentActionsInner({
   blogId,
@@ -78,11 +108,16 @@ export function CommentActionsInner({
   totalLikes: initialTotalLikes,
   likedByUser: initialLiked,
   isSignedIn,
+  isDeleted = false,
+  canDelete = false,
+  replyOpen = false,
+  onReply,
 }: CommentActionsInnerProps) {
   const router = useRouter();
   const [liked, setLiked] = useState(initialLiked);
   const [totalLikes, setTotalLikes] = useState(initialTotalLikes);
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [shared, setShared] = useState(false);
 
   const onLike = async () => {
@@ -137,30 +172,84 @@ export function CommentActionsInner({
     }
   };
 
-  return (
-    <div className="mt-3 flex items-center gap-1 border-t border-zinc-200 pt-3 dark:border-zinc-800">
-      <Link
-        href={`/post/${blogId}/comment/${commentId}`}
-        className={actionClass}
-        aria-label="Reply to comment"
-        title="Reply"
-      >
-        <ChatIcon />
-      </Link>
+  const onReplyClick = () => {
+    if (!isSignedIn) {
+      router.push("/auth/login");
+      return;
+    }
 
-      <button
-        type="button"
-        onClick={() => void onLike()}
-        disabled={loading}
-        className={`${actionClass} flex items-center gap-1.5 disabled:opacity-50${
-          liked ? " text-emerald-700 dark:text-emerald-400" : ""
-        }`}
-        aria-label={liked ? "Unlike comment" : "Like comment"}
-        title={liked ? "Unlike" : "Like"}
-      >
-        <ThumbsUpIcon filled={liked} />
-        <span className="text-sm tabular-nums">{totalLikes}</span>
-      </button>
+    onReply?.();
+  };
+
+  const onDelete = async () => {
+    if (!confirm("Delete this comment?")) {
+      return;
+    }
+
+    setDeleting(true);
+
+    const response = await fetch(
+      `/api/posts/${blogId}/comments/${commentId}/delete`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ section: DELETE_SECTION }),
+      },
+    );
+
+    setDeleting(false);
+
+    if (!response.ok) {
+      alert("Could not delete this comment.");
+      return;
+    }
+
+    router.refresh();
+  };
+
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+      {!isDeleted ? (
+        <>
+          {onReply ? (
+            <button
+              type="button"
+              onClick={onReplyClick}
+              className={`${actionClass}${
+                replyOpen ? " text-emerald-700 dark:text-emerald-400" : ""
+              }`}
+              aria-label="Reply to comment"
+              aria-expanded={replyOpen}
+              title="Reply"
+            >
+              <ChatIcon />
+            </button>
+          ) : (
+            <Link
+              href={`/post/${blogId}/comment/${commentId}`}
+              className={actionClass}
+              aria-label="Reply to comment"
+              title="Reply"
+            >
+              <ChatIcon />
+            </Link>
+          )}
+
+          <button
+            type="button"
+            onClick={() => void onLike()}
+            disabled={loading}
+            className={`${actionClass} flex items-center gap-1.5 disabled:opacity-50${
+              liked ? " text-emerald-700 dark:text-emerald-400" : ""
+            }`}
+            aria-label={liked ? "Unlike comment" : "Like comment"}
+            title={liked ? "Unlike" : "Like"}
+          >
+            <ThumbsUpIcon filled={liked} />
+            <span className="text-sm tabular-nums">{totalLikes}</span>
+          </button>
+        </>
+      ) : null}
 
       <button
         type="button"
@@ -171,6 +260,19 @@ export function CommentActionsInner({
       >
         <ShareIcon />
       </button>
+
+      {canDelete && !isDeleted ? (
+        <button
+          type="button"
+          onClick={() => void onDelete()}
+          disabled={deleting}
+          className={`${deleteActionClass} ml-auto`}
+          aria-label="Delete comment"
+          title="Delete comment"
+        >
+          <TrashIcon />
+        </button>
+      ) : null}
     </div>
   );
 }

@@ -2,14 +2,13 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CommentActions } from "@/components/comment-actions";
-import { CommentEditor } from "@/components/comment-editor";
+import { CommentItem } from "@/components/comment-item";
 import { CommentsList } from "@/components/comments-list";
-import { PostHtmlContent } from "@/components/post-html-content";
 import { HeaderNav } from "@/components/header-nav";
 import { SiteHeader } from "@/components/site-header";
-import { UserProfileLink } from "@/components/user-profile-link";
 import { auth } from "@/lib/auth";
+import { canDeleteComment } from "@/lib/comment-permissions";
+import { isPostViewable } from "@/lib/posts";
 import {
   fetchCommentsForPost,
   getCommentOnPost,
@@ -17,7 +16,7 @@ import {
   likedCommentIds,
 } from "@/lib/read/comments";
 import { getPublishedPostSummary } from "@/lib/read/posts";
-import { formatRelativeTime } from "@/lib/format-datetime";
+import { createPageMetadata, privatePageMetadata } from "@/lib/metadata";
 
 export const dynamic = "force-dynamic";
 
@@ -30,15 +29,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const comment = await getCommentThreadMetadata(blogId, commentId);
 
-  if (!comment || comment.blogEntry.status !== "PUBLISHED") {
-    return { title: "Comment not found" };
+  if (!comment || !isPostViewable(comment.blogEntry.status)) {
+    return { title: "Comment not found", ...privatePageMetadata };
   }
 
-  return {
-    title: comment.blogEntry.title
-      ? `Reply · ${comment.blogEntry.title}`
-      : "Comment thread",
-  };
+  const title = comment.blogEntry.title
+    ? `Reply · ${comment.blogEntry.title}`
+    : "Comment thread";
+
+  return createPageMetadata({
+    title,
+    path: `/post/${blogId}/comment/${commentId}`,
+    noIndex: true,
+  });
 }
 
 export default async function CommentThreadPage({ params }: PageProps) {
@@ -66,22 +69,42 @@ export default async function CommentThreadPage({ params }: PageProps) {
     ? await likedCommentIds(session.user.id, allIds)
     : new Set<string>();
 
+  const viewer = session
+    ? { id: session.user.id, role: session.user.role }
+    : null;
+
   const parentItem = {
-    ...parentComment,
+    id: parentComment.id,
+    parentId: parentComment.parentId,
+    content: parentComment.content,
+    deletedAt: parentComment.deletedAt,
+    createdAt: parentComment.createdAt,
+    totalLikes: parentComment.totalLikes,
     likedByUser: likedIds.has(parentComment.id),
+    canDelete: canDeleteComment(
+      { userId: parentComment.userId, deletedAt: parentComment.deletedAt },
+      viewer,
+    ),
+    user: parentComment.user,
   };
 
   const replyItems = replies.map((reply) => ({
     id: reply.id,
+    parentId: reply.parentId,
     content: reply.content,
+    deletedAt: reply.deletedAt,
     createdAt: reply.createdAt,
     totalLikes: reply.totalLikes,
     likedByUser: likedIds.has(reply.id),
+    canDelete: canDeleteComment(
+      { userId: reply.user.id, deletedAt: reply.deletedAt },
+      viewer,
+    ),
     user: reply.user,
   }));
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="page-shell">
       <SiteHeader>
         <HeaderNav
           isSignedIn={Boolean(session)}
@@ -91,7 +114,7 @@ export default async function CommentThreadPage({ params }: PageProps) {
         />
       </SiteHeader>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
+      <main className="page-main max-w-3xl">
         <Link
           href={`/post/${blogId}`}
           className="text-sm text-muted link-accent"
@@ -99,41 +122,18 @@ export default async function CommentThreadPage({ params }: PageProps) {
           ← Back to {post.title ?? "post"}
         </Link>
 
-        <article className="mt-6 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="flex flex-wrap items-start gap-x-2 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
-            <UserProfileLink
-              username={parentItem.user.username}
-              displayName={parentItem.user.name}
-            />
-            <span aria-hidden>·</span>
-            <span>{formatRelativeTime(parentItem.createdAt)}</span>
-          </p>
-          <PostHtmlContent
-            html={parentItem.content}
-            className="post-content mt-2"
-          />
-          <CommentActions
-            blogId={blogId}
-            commentId={parentItem.id}
-            totalLikes={parentItem.totalLikes}
-            likedByUser={parentItem.likedByUser}
-            isSignedIn={Boolean(session)}
-          />
-        </article>
-
-        <CommentEditor
-          blogEntryId={blogId}
-          parentId={commentId}
+        <CommentItem
+          as="div"
+          className="surface-card mt-6"
+          blogId={blogId}
+          comment={parentItem}
           isSignedIn={Boolean(session)}
-          heading="Reply"
-          submitLabel="Post reply"
         />
 
         <CommentsList
           blogId={blogId}
           comments={replyItems}
           isSignedIn={Boolean(session)}
-          viewerId={session?.user.id}
           heading="Replies"
           emptyMessage="No replies yet."
         />

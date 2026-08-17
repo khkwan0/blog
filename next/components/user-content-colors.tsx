@@ -90,7 +90,7 @@ export function UserContentColors({
   };
 
   return (
-    <section className="mt-8 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+    <section className="surface-card mt-8">
       <h2 className="text-lg font-semibold tracking-tight">Mention & hashtag colors</h2>
       <p className="mt-1 text-sm text-muted">
         Choose how @mentions and #hashtags appear for you across the site.

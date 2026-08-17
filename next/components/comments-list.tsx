@@ -1,14 +1,14 @@
-import { CommentActions } from "@/components/comment-actions";
-import { UserProfileLink } from "@/components/user-profile-link";
-import { formatRelativeTime } from "@/lib/format-datetime";
-import { prepareHtmlLinks } from "@/lib/link-html";
+import { CommentItem } from "@/components/comment-item";
 
 export type CommentListItem = {
   id: string;
+  parentId: string | null;
   content: string;
+  deletedAt: Date | null;
   createdAt: Date;
   totalLikes: number;
   likedByUser: boolean;
+  canDelete: boolean;
   user: { id: string; username: string; name: string };
 };
 
@@ -16,7 +16,6 @@ type CommentsListProps = {
   blogId: string;
   comments: CommentListItem[];
   isSignedIn: boolean;
-  viewerId?: string | null;
   heading?: string;
   emptyMessage?: string;
 };
@@ -25,7 +24,6 @@ export function CommentsList({
   blogId,
   comments,
   isSignedIn,
-  viewerId,
   heading = "Comments",
   emptyMessage,
 }: CommentsListProps) {
@@ -42,32 +40,12 @@ export function CommentsList({
       </h2>
       <ul className="space-y-4">
         {comments.map((comment) => (
-          <li
+          <CommentItem
             key={comment.id}
-            className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
-          >
-            <p className="flex flex-wrap items-start gap-x-2 gap-y-1 text-sm text-zinc-500 dark:text-zinc-400">
-              <UserProfileLink
-                username={comment.user.username}
-                displayName={comment.user.name}
-              />
-              <span aria-hidden>·</span>
-              <span>{formatRelativeTime(comment.createdAt)}</span>
-            </p>
-            <div
-              className="post-content mt-2"
-              dangerouslySetInnerHTML={{
-                __html: prepareHtmlLinks(comment.content),
-              }}
-            />
-            <CommentActions
-              blogId={blogId}
-              commentId={comment.id}
-              totalLikes={comment.totalLikes}
-              likedByUser={comment.likedByUser}
-              isSignedIn={isSignedIn}
-            />
-          </li>
+            blogId={blogId}
+            comment={comment}
+            isSignedIn={isSignedIn}
+          />
         ))}
       </ul>
     </section>

@@ -9,6 +9,12 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
 model User {
   id                  String      @id @default(cuid())
   username            String      @unique
@@ -21,7 +27,7 @@ model User {
   profileSetupComplete  Boolean     @default(true)
   mentionColor  String?
   hashtagColor  String?
-  role          Int         @default(0)
+  role          UserRole    @default(USER)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @default(now()) @updatedAt
   blogEntries   BlogEntry[]
@@ -195,6 +201,7 @@ model Comment {
   userId      String
   parentId    String?
   content     String
+  deletedAt   DateTime?
   totalLikes  Int           @default(1)
   createdAt   DateTime      @default(now())
   blogEntry   BlogEntry     @relation(fields: [blogEntryId], references: [id], onDelete: Cascade)

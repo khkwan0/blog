@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getApiSession } from "@/lib/api-session";
 import { isEmptyEditorHtml } from "@/lib/is-empty-editor-html";
 import {
@@ -42,6 +43,15 @@ export async function POST(request: Request) {
     slug,
     publish: wantsPublish,
   });
+
+  revalidatePath("/");
+  revalidatePath("/sitemap.xml");
+  if (wantsPublish) {
+    revalidatePath(`/post/${post.id}`);
+    if (session.user.username) {
+      revalidatePath(`/user/${session.user.username}`);
+    }
+  }
 
   return NextResponse.json(post, { status: 201 });
 }

@@ -32,7 +32,7 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 py-12">
+    <main className="page-auth">
       <h1 className="text-2xl font-semibold">Forgot password</h1>
       <p className="mt-2 text-sm text-muted">
         Enter the email on your account to receive a reset link. Phone-only

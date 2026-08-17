@@ -24,6 +24,10 @@ type CommentActionsProps = {
   totalLikes: number;
   likedByUser: boolean;
   isSignedIn: boolean;
+  isDeleted?: boolean;
+  canDelete?: boolean;
+  replyOpen?: boolean;
+  onReply?: () => void;
 };
 
 export function CommentActions(props: CommentActionsProps) {

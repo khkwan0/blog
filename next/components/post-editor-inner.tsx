@@ -7,6 +7,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
 import { ComposerMediaBar } from "@/components/composer-media-bar";
 import { EditorImageButton } from "@/components/editor-image-button";
+import { EditorVideoButton } from "@/components/editor-video-button";
 import { UserAvatar } from "@/components/user-avatar";
 import { createEditorExtensions } from "@/lib/editor-extensions";
 import {
@@ -14,6 +15,11 @@ import {
   imageFileFromClipboard,
   imageFilesFromDrop,
 } from "@/lib/editor-image-upload";
+import {
+  handleEditorVideoFile,
+  videoFileFromClipboard,
+  videoFilesFromDrop,
+} from "@/lib/editor-video-upload";
 import { isEmptyEditorHtml } from "@/lib/is-empty-editor-html";
 
 type ToolbarButtonProps = {
@@ -92,26 +98,48 @@ export function PostEditorInner({
         }`,
       },
       handlePaste: (_view, event) => {
-        const file = imageFileFromClipboard(event.clipboardData);
         const activeEditor = editorRef.current;
-        if (!file || !activeEditor) {
+        if (!activeEditor) {
           return false;
         }
 
-        event.preventDefault();
-        void handleEditorImageFile(activeEditor, file, setError);
-        return true;
+        const videoFile = videoFileFromClipboard(event.clipboardData);
+        if (videoFile) {
+          event.preventDefault();
+          void handleEditorVideoFile(activeEditor, videoFile, setError);
+          return true;
+        }
+
+        const imageFile = imageFileFromClipboard(event.clipboardData);
+        if (imageFile) {
+          event.preventDefault();
+          void handleEditorImageFile(activeEditor, imageFile, setError);
+          return true;
+        }
+
+        return false;
       },
       handleDrop: (_view, event) => {
-        const files = imageFilesFromDrop(event.dataTransfer);
         const activeEditor = editorRef.current;
-        if (files.length === 0 || !activeEditor) {
+        if (!activeEditor) {
           return false;
         }
 
-        event.preventDefault();
-        void handleEditorImageFile(activeEditor, files[0], setError);
-        return true;
+        const videoFiles = videoFilesFromDrop(event.dataTransfer);
+        if (videoFiles.length > 0) {
+          event.preventDefault();
+          void handleEditorVideoFile(activeEditor, videoFiles[0], setError);
+          return true;
+        }
+
+        const imageFiles = imageFilesFromDrop(event.dataTransfer);
+        if (imageFiles.length > 0) {
+          event.preventDefault();
+          void handleEditorImageFile(activeEditor, imageFiles[0], setError);
+          return true;
+        }
+
+        return false;
       },
     },
   });
@@ -185,8 +213,8 @@ export function PostEditorInner({
     <section
       className={
         isEditing
-          ? "mb-10 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900"
-          : "mb-10"
+          ? "surface-card mb-10"
+          : "mb-0"
       }
     >
       {isEditing ? (
@@ -197,13 +225,13 @@ export function PostEditorInner({
           className={
             isEditing
               ? undefined
-              : "flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
+              : "flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900 sm:p-4"
           }
         >
           {!isEditing && displayName ? (
             <Link
               href="/settings"
-              className="mt-0.5 shrink-0"
+              className="mt-0.5 hidden shrink-0 sm:block"
               title="Account settings"
             >
               <UserAvatar
@@ -268,6 +296,11 @@ export function PostEditorInner({
                     }
                   />
                   <EditorImageButton
+                    editor={editor}
+                    disabled={loading}
+                    onError={setError}
+                  />
+                  <EditorVideoButton
                     editor={editor}
                     disabled={loading}
                     onError={setError}

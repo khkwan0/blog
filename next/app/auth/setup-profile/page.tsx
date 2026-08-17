@@ -24,13 +24,13 @@ export default async function SetupProfilePage() {
   const initialDisplayName = session.user.name?.trim() || "";
 
   return (
-    <main className="mx-auto w-full max-w-md px-6 py-16">
+    <main className="page-auth py-16">
       <h1 className="text-2xl font-semibold tracking-tight">Set up your profile</h1>
       <p className="mt-2 text-sm text-muted">
         One more step before you can use the site.
       </p>
 
-      <div className="mt-8 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="surface-card mt-8">
         <ProfileSetupForm
           initialDisplayName={initialDisplayName}
           initialUsername={suggestedUsername}

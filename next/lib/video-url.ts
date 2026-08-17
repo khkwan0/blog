@@ -1,3 +1,5 @@
+import { isHostedContentVideoUrl } from "@/lib/content-video-storage";
+
 export type VideoProvider =
   | "youtube"
   | "vimeo"
@@ -276,6 +278,24 @@ function parseKick(url: URL): ParsedVideoUrl | null {
   };
 }
 
+function parseHostedContentVideo(rawUrl: string): ParsedVideoUrl | null {
+  if (!isHostedContentVideoUrl(rawUrl)) {
+    return null;
+  }
+
+  const pathname = rawUrl.split("?")[0] ?? rawUrl;
+  if (!VIDEO_FILE_PATTERN.test(pathname)) {
+    return null;
+  }
+
+  return {
+    provider: "direct",
+    videoId: rawUrl,
+    url: rawUrl,
+    directType: "file",
+  };
+}
+
 function parseDirectMedia(url: URL): ParsedVideoUrl | null {
   const target = `${url.pathname}${url.search}`;
 
@@ -302,10 +322,19 @@ function parseDirectMedia(url: URL): ParsedVideoUrl | null {
 }
 
 export function parseVideoUrl(rawUrl: string): ParsedVideoUrl | null {
+  const hosted = parseHostedContentVideo(rawUrl.trim());
+  if (hosted) {
+    return hosted;
+  }
+
   try {
     const url = new URL(rawUrl);
     if (url.protocol !== "http:" && url.protocol !== "https:") {
       return null;
+    }
+
+    if (isHostedContentVideoUrl(url.pathname)) {
+      return parseHostedContentVideo(url.pathname);
     }
 
     return (

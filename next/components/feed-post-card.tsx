@@ -7,6 +7,7 @@ import { PostAuthorHeader } from "@/components/post-author-header";
 import { PostBlocks } from "@/components/post-blocks";
 import { PostDeleteButton } from "@/components/post-delete-button";
 import { PostEditButton } from "@/components/post-edit-button";
+import { PostDeletedPlaceholder } from "@/components/post-deleted-placeholder";
 import { PostHtmlContent } from "@/components/post-html-content";
 import { UserIdentityLabels } from "@/components/user-identity-labels";
 import { preparePlainTextLinks } from "@/lib/link-html";
@@ -27,19 +28,23 @@ export function FeedPostCard({
 }: FeedPostCardProps) {
   const router = useRouter();
   const author = post.isRepost ? post.targetOwner : post.owner;
-  const htmlContent = post.blocks
-    .filter((block) => block.format === "HTML")
-    .map((block) => block.content)
-    .join("");
-  const videoBlocks = post.blocks.filter((block) => block.format === "VIDEO");
-  const hasImages = /<img\b/i.test(htmlContent);
+  const htmlContent = post.isDeleted
+    ? ""
+    : post.blocks
+        .filter((block) => block.format === "HTML")
+        .map((block) => block.content)
+        .join("");
+  const videoBlocks = post.isDeleted
+    ? []
+    : post.blocks.filter((block) => block.format === "VIDEO");
+  const hasImages = !post.isDeleted && /<img\b/i.test(htmlContent);
   const navigateToPost = () => {
     router.push(post.href);
   };
 
   return (
     <li
-      className="relative cursor-pointer rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900"
+      className="surface-card relative min-w-0 cursor-pointer"
       role="link"
       tabIndex={0}
       onClick={(event) => {
@@ -78,17 +83,21 @@ export function FeedPostCard({
             displayName={author.name}
             image={author.image}
             createdAt={post.createdAt}
+            className={post.canEdit || post.canDelete ? "pr-16" : undefined}
           />
         ) : null}
-        {post.title ? (
+        {post.isDeleted ? (
+          <PostDeletedPlaceholder />
+        ) : null}
+        {!post.isDeleted && post.title ? (
           <Link
             href={post.href}
             className="mt-3 block no-underline text-inherit hover:no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
-            <h3 className="text-lg font-semibold">{post.title}</h3>
+            <h3 className="break-words text-lg font-semibold">{post.title}</h3>
           </Link>
         ) : null}
-        {post.excerpt && !hasImages ? (
+        {!post.isDeleted && post.excerpt && !hasImages ? (
           <p
             className="post-excerpt mt-3 text-zinc-700 dark:text-zinc-300"
             dangerouslySetInnerHTML={{
@@ -96,10 +105,10 @@ export function FeedPostCard({
             }}
           />
         ) : null}
-        {htmlContent && (hasImages || !post.excerpt) ? (
+        {!post.isDeleted && htmlContent && (hasImages || !post.excerpt) ? (
           <PostHtmlContent html={htmlContent} className="post-content mt-3" />
         ) : null}
-        {!post.title && (post.excerpt || hasImages) ? (
+        {!post.isDeleted && !post.title && (post.excerpt || hasImages) ? (
           <Link
             href={post.href}
             className="mt-2 inline-block text-sm link-accent"
@@ -107,7 +116,7 @@ export function FeedPostCard({
             Read post
           </Link>
         ) : null}
-        <PostBlocks blocks={videoBlocks} />
+        {!post.isDeleted ? <PostBlocks blocks={videoBlocks} /> : null}
         <PostActions
           postId={post.targetId}
           postTitle={post.title}
@@ -118,6 +127,7 @@ export function FeedPostCard({
           repostedByUser={post.repostedByUser}
           isOwnPost={viewerId === post.targetOwnerId}
           isSignedIn={isSignedIn}
+          isDeleted={post.isDeleted}
         />
       </article>
     </li>

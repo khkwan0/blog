@@ -14,6 +14,7 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
+
   # Development Mode
   dev:
     profiles: ["dev"]
@@ -71,9 +72,11 @@ services:
         condition: service_healthy
     entrypoint: ["./entrypoint.sh"]
     command: ["bun", "server.js"]
+    restart: unless-stopped 
 
   # Prisma Studio for development DB
   studio-dev:
+    profiles: ["dev", "studio"]
     build:
       context: .
       dockerfile: next/Dockerfile
@@ -94,6 +97,7 @@ services:
 
   # Prisma Studio for production DB
   studio-prod:
+    profiles: ["studio-prod"]
     build:
       context: .
       dockerfile: next/Dockerfile

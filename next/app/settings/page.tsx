@@ -1,5 +1,5 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AccountEmailEditor } from "@/components/account-email-editor";
 import { AvatarEditor } from "@/components/avatar-editor";
@@ -12,10 +12,16 @@ import { HeaderNav } from "@/components/header-nav";
 import { SiteHeader } from "@/components/site-header";
 import { UserContentColors } from "@/components/user-content-colors";
 import { auth } from "@/lib/auth";
+import { privatePageMetadata } from "@/lib/metadata";
 import { getDefaultContentColors } from "@/lib/content-colors";
 import { getUserContentColors } from "@/lib/read/user-preferences";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Settings",
+  ...privatePageMetadata,
+};
 
 export default async function SettingsPage() {
   const session = await auth.api.getSession({
@@ -32,7 +38,7 @@ export default async function SettingsPage() {
   const showEmailSection = isSyntheticEmail(session.user.email);
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="page-shell">
       <SiteHeader>
         <HeaderNav
           isSignedIn
@@ -42,10 +48,10 @@ export default async function SettingsPage() {
         />
       </SiteHeader>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
+      <main className="page-main max-w-3xl">
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
 
-        <section className="mt-8 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+        <section className="surface-card mt-8">
           <h2 className="text-lg font-semibold tracking-tight">Name</h2>
           <div className="mt-6">
             <DisplayNameEditor initialDisplayName={session.user.name} />
@@ -53,7 +59,7 @@ export default async function SettingsPage() {
         </section>
 
         {showEmailSection || oauthProviders.length > 0 ? (
-          <section className="mt-8 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+          <section className="surface-card mt-8">
             <h2 className="text-lg font-semibold tracking-tight">Sign-in methods</h2>
             {showEmailSection ? (
               <div className="mt-6 border-b border-zinc-200 pb-6 dark:border-zinc-700">
@@ -79,14 +85,14 @@ export default async function SettingsPage() {
           </section>
         ) : null}
 
-        <section className="mt-8 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+        <section className="surface-card mt-8">
           <h2 className="text-lg font-semibold tracking-tight">Username</h2>
           <div className="mt-6">
             <UsernameEditor initialUsername={session.user.username ?? ""} />
           </div>
         </section>
 
-        <section className="mt-8 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+        <section className="surface-card mt-8">
           <h2 className="text-lg font-semibold tracking-tight">Avatar</h2>
           <div className="mt-6">
             <AvatarEditor

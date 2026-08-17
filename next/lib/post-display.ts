@@ -1,3 +1,6 @@
+import type { BlogEntryStatus } from "@/lib/posts";
+import { isPostDeleted } from "@/lib/posts";
+
 export type FeedPostBlock = {
   id: string;
   format: "HTML" | "VIDEO" | "TEXT" | "AUDIO" | "MARKDOWN";
@@ -10,6 +13,7 @@ export type FeedPostSource = {
   title: string | null;
   slug?: string;
   excerpt: string | null;
+  status: BlogEntryStatus;
   totalLikes: number;
   totalReposts: number;
   createdAt: Date;
@@ -22,6 +26,7 @@ export type FeedPostSource = {
     id: string;
     title: string | null;
     excerpt: string | null;
+    status: BlogEntryStatus;
     totalLikes: number;
     totalReposts: number;
     createdAt: Date;
@@ -50,6 +55,7 @@ export type FeedPostView = {
   likedByUser: boolean;
   repostedByUser: boolean;
   isRepost: boolean;
+  isDeleted: boolean;
   reposterDisplayName?: string;
   reposterUsername?: string;
   blocks: FeedPostBlock[];
@@ -67,12 +73,13 @@ export function toFeedPostView(
 ): FeedPostView {
   const original = post.repostedFrom ?? post;
   const isRepost = Boolean(post.repostedFromId && post.repostedFrom);
+  const isDeleted = isPostDeleted(original.status);
 
   return {
     entryId: post.id,
     href: isRepost ? `/post/${original.id}` : `/post/${post.id}`,
-    title: original.title,
-    excerpt: original.excerpt,
+    title: isDeleted ? null : original.title,
+    excerpt: isDeleted ? null : original.excerpt,
     createdAt: post.createdAt,
     owner: post.owner,
     ownerId: post.ownerId,
@@ -86,14 +93,16 @@ export function toFeedPostView(
     likedByUser: options.likedPostIds.has(original.id),
     repostedByUser: options.repostedPostIds.has(original.id),
     isRepost,
+    isDeleted,
     reposterDisplayName: isRepost ? post.owner.name : undefined,
     reposterUsername: isRepost ? post.owner.username : undefined,
-    blocks: original.blocks,
-    canDelete: options.viewerId === post.ownerId,
+    blocks: isDeleted ? [] : original.blocks,
+    canDelete: options.viewerId === post.ownerId && !isPostDeleted(post.status),
     canEdit:
       Boolean(options.viewerId) &&
       options.viewerId === original.ownerId &&
-      !isRepost,
+      !isRepost &&
+      !isDeleted,
   };
 }
 

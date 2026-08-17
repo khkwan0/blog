@@ -1,9 +1,33 @@
-import { publicPostWhere } from "@/lib/posts";
+import { activeCommentWhere } from "@/lib/comments";
+import { viewablePostWhere } from "@/lib/posts";
 import { prisma } from "@/lib/prisma";
+
+const commentSelect = {
+  id: true,
+  parentId: true,
+  content: true,
+  deletedAt: true,
+  createdAt: true,
+  totalLikes: true,
+  user: {
+    select: {
+      id: true,
+      username: true,
+      name: true,
+    },
+  },
+  _count: {
+    select: {
+      replies: { where: activeCommentWhere },
+    },
+  },
+} as const;
 
 export type CommentRecord = {
   id: string;
+  parentId: string | null;
   content: string;
+  deletedAt: Date | null;
   createdAt: Date;
   totalLikes: number;
   user: { id: string; username: string; name: string };
@@ -17,24 +41,17 @@ export async function fetchCommentsForPost(
   return prisma.comment.findMany({
     where: { blogEntryId, parentId },
     orderBy: { createdAt: "asc" },
-    select: {
-      id: true,
-      content: true,
-      createdAt: true,
-      totalLikes: true,
-      user: {
-        select: {
-          id: true,
-          username: true,
-          name: true,
-        },
-      },
-      _count: {
-        select: {
-          replies: true,
-        },
-      },
-    },
+    select: commentSelect,
+  });
+}
+
+export async function fetchAllCommentsForPost(
+  blogEntryId: string,
+): Promise<CommentRecord[]> {
+  return prisma.comment.findMany({
+    where: { blogEntryId },
+    orderBy: { createdAt: "asc" },
+    select: commentSelect,
   });
 }
 
@@ -82,9 +99,12 @@ export async function getCommentOnPost(blogId: string, commentId: string) {
     where: { id: commentId, blogEntryId: blogId },
     select: {
       id: true,
+      parentId: true,
       content: true,
+      deletedAt: true,
       createdAt: true,
       totalLikes: true,
+      userId: true,
       user: {
         select: {
           id: true,
@@ -98,7 +118,7 @@ export async function getCommentOnPost(blogId: string, commentId: string) {
 
 export async function getPublishedPostIdForComment(blogId: string) {
   return prisma.blogEntry.findFirst({
-    where: { id: blogId, ...publicPostWhere },
+    where: { id: blogId, ...viewablePostWhere },
     select: { id: true },
   });
 }
@@ -110,9 +130,16 @@ export async function getParentComment(blogId: string, parentId: string) {
   });
 }
 
+export async function getCommentForSoftDelete(blogId: string, commentId: string) {
+  return prisma.comment.findFirst({
+    where: { id: commentId, blogEntryId: blogId, ...activeCommentWhere },
+    select: { id: true, userId: true, deletedAt: true },
+  });
+}
+
 export async function getCommentForLike(blogId: string, commentId: string) {
   return prisma.comment.findFirst({
-    where: { id: commentId, blogEntryId: blogId },
+    where: { id: commentId, blogEntryId: blogId, ...activeCommentWhere },
     select: { id: true, totalLikes: true },
   });
 }

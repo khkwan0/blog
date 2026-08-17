@@ -9,12 +9,10 @@ import { resolveMediaPath } from "@/lib/video-storage";
 export const dynamic = "force-dynamic";
 
 import { EXT_TO_MIME } from "@/lib/image-formats";
+import { VIDEO_EXT_TO_MIME } from "@/lib/video-formats";
 
 const CONTENT_TYPES: Record<string, string> = {
-  ".mp4": "video/mp4",
-  ".webm": "video/webm",
-  ".mkv": "video/x-matroska",
-  ".m4v": "video/x-m4v",
+  ...VIDEO_EXT_TO_MIME,
   ...EXT_TO_MIME,
 };
 
@@ -28,8 +26,9 @@ export async function GET(
   const isPostMedia = relativePath.startsWith("posts/");
   const isAvatarMedia = relativePath.startsWith("avatars/");
   const isContentImage = relativePath.startsWith("images/");
+  const isContentVideo = relativePath.startsWith("videos/");
 
-  if (!isPostMedia && !isAvatarMedia && !isContentImage) {
+  if (!isPostMedia && !isAvatarMedia && !isContentImage && !isContentVideo) {
     return new Response("Not found", { status: 404 });
   }
 

@@ -35,6 +35,14 @@ export async function createComment(input: {
   });
 }
 
+export async function softDeleteComment(commentId: string) {
+  return prisma.comment.update({
+    where: { id: commentId },
+    data: { deletedAt: new Date() },
+    select: { id: true },
+  });
+}
+
 export async function toggleCommentLike(
   commentId: string,
   userId: string,

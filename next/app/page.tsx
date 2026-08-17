@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { FeedPostCard } from "@/components/feed-post-card";
 import { SiteHeader } from "@/components/site-header";
@@ -5,6 +6,8 @@ import { HeaderNav } from "@/components/header-nav";
 import { FollowingStrip } from "@/components/following-strip";
 import { PostEditor } from "@/components/post-editor";
 import { auth } from "@/lib/auth";
+import { createPageMetadata } from "@/lib/metadata";
+import { siteConfig } from "@/lib/site";
 import { feedPostTargetIds, toFeedPostView } from "@/lib/post-display";
 import { getFeedPosts, getLatestPosts, getLikedPostIds } from "@/lib/read/posts";
 import { getRepostedPostIds } from "@/lib/read/reposts";
@@ -15,6 +18,12 @@ import {
 import { getUserContentStats } from "@/lib/read/user-stats";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = createPageMetadata({
+  title: siteConfig.title,
+  description: siteConfig.description,
+  path: "/",
+});
 
 export default async function Home() {
   const session = await auth.api.getSession({
@@ -59,13 +68,13 @@ export default async function Home() {
 
   const feedList =
     feedPosts.length === 0 ? (
-      <p className="mt-6 text-muted">
+      <p className="text-muted">
         {session
           ? "No posts from you or people you follow yet."
           : "No posts yet."}
       </p>
     ) : (
-      <ul className="mt-6 space-y-6">
+      <ul className="space-y-4 sm:space-y-6">
         {feedPosts.map((post) => (
           <FeedPostCard
             key={post.entryId}
@@ -78,7 +87,7 @@ export default async function Home() {
     );
 
   return (
-    <div className="flex flex-1 flex-col bg-zinc-50 dark:bg-zinc-950">
+    <div className="page-shell">
       <SiteHeader maxWidthClass="max-w-5xl">
         <HeaderNav
           isSignedIn={Boolean(session)}
@@ -88,10 +97,17 @@ export default async function Home() {
         />
       </SiteHeader>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
+      <main className="page-main max-w-5xl">
         {session && myCounts && contentStats ? (
-          <div className="flex items-start gap-8">
-            <div className="w-40 shrink-0">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[10rem_minmax(0,1fr)] lg:items-start lg:gap-x-8 lg:gap-y-6">
+            <div className="min-w-0 lg:col-start-2 lg:row-start-1">
+              <PostEditor
+                displayName={session.user.name}
+                avatarImage={session.user.image}
+              />
+            </div>
+
+            <div className="w-full lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:w-40">
               <FollowingStrip
                 profileUsername={session.user.username ?? ""}
                 followerCount={myCounts.followerCount}
@@ -100,12 +116,7 @@ export default async function Home() {
               />
             </div>
 
-            <div className="min-w-0 flex-1">
-              <PostEditor
-                displayName={session.user.name}
-                avatarImage={session.user.image}
-              />
-
+            <div className="min-w-0 lg:col-start-2 lg:row-start-2">
               {feedList}
             </div>
           </div>

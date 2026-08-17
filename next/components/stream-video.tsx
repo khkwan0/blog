@@ -49,7 +49,7 @@ export function StreamVideo({ src, directType, isLive }: StreamVideoProps) {
   }, [src, directType]);
 
   return (
-    <div className="relative overflow-hidden rounded-lg bg-black">
+    <div className="relative w-full overflow-hidden rounded-lg bg-black">
       {isLive ? (
         <span className="absolute top-3 left-3 z-10 rounded bg-red-600 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-white">
           Live

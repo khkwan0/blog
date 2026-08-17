@@ -46,6 +46,7 @@ export async function POST(request: Request, context: RouteContext) {
   await archivePost(blogId);
 
   revalidatePath("/");
+  revalidatePath("/sitemap.xml");
   revalidatePath(`/blog/${blogId}`);
   revalidatePath(`/post/${blogId}`);
 

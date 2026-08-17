@@ -12,7 +12,7 @@ function loadCommentEditorInner() {
 const CommentEditorInner = dynamic(loadCommentEditorInner, {
   ssr: false,
   loading: () => (
-    <section className="mt-8 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+    <section className="surface-card mt-8">
       <h2 className="text-lg font-semibold tracking-tight">Comment</h2>
       <p className="mt-4 text-sm text-muted">Loading editor…</p>
     </section>
@@ -25,6 +25,9 @@ type CommentEditorProps = {
   isSignedIn: boolean;
   heading?: string;
   submitLabel?: string;
+  variant?: "default" | "inline";
+  onCancel?: () => void;
+  onPosted?: () => void;
 };
 
 export function CommentEditor(props: CommentEditorProps) {

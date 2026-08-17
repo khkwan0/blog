@@ -7,7 +7,7 @@ type VimeoEmbedProps = {
 
 export function VimeoEmbed({ videoId, isLive }: VimeoEmbedProps) {
   return (
-    <div className="relative aspect-video overflow-hidden rounded-lg bg-black">
+    <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
       {isLive ? (
         <span className="absolute top-3 left-3 z-10 rounded bg-red-600 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-white">
           Live

@@ -14,6 +14,7 @@ type PostActionsProps = {
   repostedByUser: boolean;
   isOwnPost: boolean;
   isSignedIn: boolean;
+  isDeleted?: boolean;
 };
 
 function ChatIcon() {
@@ -113,6 +114,7 @@ export function PostActions({
   repostedByUser: initialReposted,
   isOwnPost,
   isSignedIn,
+  isDeleted = false,
 }: PostActionsProps) {
   const router = useRouter();
   const [liked, setLiked] = useState(initialLiked);
@@ -258,7 +260,7 @@ export function PostActions({
   };
 
   return (
-    <div className="relative z-10 mt-4 flex items-center gap-1 border-t border-zinc-200 pt-3 dark:border-zinc-800">
+    <div className="relative z-10 mt-4 flex flex-wrap items-center gap-1 border-t border-zinc-200 pt-3 dark:border-zinc-800">
       <Link
         href={`/post/${postId}`}
         className={`${actionClass} flex items-center gap-1.5`}
@@ -269,44 +271,48 @@ export function PostActions({
         <span className="text-sm tabular-nums">{commentCount}</span>
       </Link>
 
-      <button
-        type="button"
-        onClick={() => void onLike()}
-        disabled={loading}
-        className={`${actionClass} flex items-center gap-1.5 disabled:opacity-50${
-          liked ? " text-emerald-700 dark:text-emerald-400" : ""
-        }`}
-        aria-label={liked ? "Unlike post" : "Like post"}
-        title={liked ? "Unlike" : "Like"}
-      >
-        <ThumbsUpIcon filled={liked} />
-        <span className="text-sm tabular-nums">{totalLikes}</span>
-      </button>
-
-      {!isOwnPost ? (
+      {!isDeleted ? (
         <button
           type="button"
-          onClick={() => void onRepost()}
-          disabled={repostLoading}
+          onClick={() => void onLike()}
+          disabled={loading}
           className={`${actionClass} flex items-center gap-1.5 disabled:opacity-50${
-            reposted ? " text-emerald-700 dark:text-emerald-400" : ""
+            liked ? " text-emerald-700 dark:text-emerald-400" : ""
           }`}
-          aria-label={reposted ? "Undo repost" : "Repost"}
-          title={reposted ? "Undo repost" : "Repost"}
+          aria-label={liked ? "Unlike post" : "Like post"}
+          title={liked ? "Unlike" : "Like"}
         >
-          <RepostIcon filled={reposted} />
-          <span className="text-sm tabular-nums">{totalReposts}</span>
+          <ThumbsUpIcon filled={liked} />
+          <span className="text-sm tabular-nums">{totalLikes}</span>
         </button>
-      ) : (
-        <span
-          className={`${actionClass} flex cursor-default items-center gap-1.5`}
-          aria-label={`${totalReposts} reposts`}
-          title="Reposts"
-        >
-          <RepostIcon filled={false} />
-          <span className="text-sm tabular-nums">{totalReposts}</span>
-        </span>
-      )}
+      ) : null}
+
+      {!isDeleted ? (
+        !isOwnPost ? (
+          <button
+            type="button"
+            onClick={() => void onRepost()}
+            disabled={repostLoading}
+            className={`${actionClass} flex items-center gap-1.5 disabled:opacity-50${
+              reposted ? " text-emerald-700 dark:text-emerald-400" : ""
+            }`}
+            aria-label={reposted ? "Undo repost" : "Repost"}
+            title={reposted ? "Undo repost" : "Repost"}
+          >
+            <RepostIcon filled={reposted} />
+            <span className="text-sm tabular-nums">{totalReposts}</span>
+          </button>
+        ) : (
+          <span
+            className={`${actionClass} flex cursor-default items-center gap-1.5`}
+            aria-label={`${totalReposts} reposts`}
+            title="Reposts"
+          >
+            <RepostIcon filled={false} />
+            <span className="text-sm tabular-nums">{totalReposts}</span>
+          </span>
+        )
+      ) : null}
 
       <div className="relative">
         <button
@@ -319,7 +325,7 @@ export function PostActions({
           <ShareIcon />
         </button>
         {shareMenuOpen ? (
-          <div className="absolute right-0 top-full z-20 mt-2 w-44 rounded-md border border-zinc-200 bg-white p-1.5 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+          <div className="absolute right-0 top-full z-20 mt-2 w-44 max-w-[calc(100vw-2rem)] rounded-md border border-zinc-200 bg-white p-1.5 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
             {shareTargets.map((target) => (
               <a
                 key={target.id}
